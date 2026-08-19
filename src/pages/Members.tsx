@@ -18,6 +18,8 @@ import {
   FileText
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Contributor {
   id: number;
@@ -483,173 +485,88 @@ export const Members: React.FC = () => {
   };
 
   const handleExportPDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to export PDF');
-      return;
+    try {
+      const doc = new jsPDF();
+
+      // Title & Header (Divine Minimal Palette)
+      doc.setFontSize(18);
+      doc.setTextColor(110, 31, 36); // Primary Maroon (#6E1F24)
+      doc.text('TEAM GARUDA COMMITTEE', 105, 18, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Digital Contribution Book • Statement of Accounts (${selectedYear})`, 105, 25, { align: 'center' });
+
+      // Summary Card
+      doc.setDrawColor(201, 154, 74); // Antique Gold (#C99A4A)
+      doc.setFillColor(250, 247, 242); // Ivory (#FAF7F2)
+      doc.roundedRect(14, 30, 182, 18, 3, 3, 'FD');
+
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text('STATEMENT YEAR', 35, 37, { align: 'center' });
+      doc.text('TOTAL CONTRIBUTORS', 105, 37, { align: 'center' });
+      doc.text('TOTAL FUNDS COLLECTED', 165, 37, { align: 'center' });
+
+      doc.setFontSize(11);
+      doc.setTextColor(110, 31, 36);
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(selectedYear), 35, 44, { align: 'center' });
+      doc.text(String(rankedContributors.length), 105, 44, { align: 'center' });
+      doc.text(`Rs. ${totalAmountSum.toLocaleString()}`, 165, 44, { align: 'center' });
+
+      // Table Rows
+      const tableData = rankedContributors.map((cGroup, index) => [
+        index + 1,
+        cGroup.name,
+        cGroup.phone || 'N/A',
+        `Rs. ${cGroup.totalAmount.toLocaleString()}`
+      ]);
+
+      autoTable(doc, {
+        startY: 54,
+        head: [['Rank', 'Contributor Name', 'Phone Number', 'Total Contribution']],
+        body: tableData,
+        headStyles: {
+          fillColor: [110, 31, 36],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'left'
+        },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 20 },
+          1: { halign: 'left', cellWidth: 'auto' },
+          2: { halign: 'left', cellWidth: 45 },
+          3: { halign: 'right', cellWidth: 45 }
+        },
+        alternateRowStyles: {
+          fillColor: [250, 247, 242]
+        },
+        margin: { left: 14, right: 14 },
+        theme: 'grid'
+      });
+
+      // Footer on every page
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(140, 140, 140);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Generated on ${new Date().toLocaleDateString('en-IN')} • Team Garuda Official Contribution Statement • Page ${i} of ${pageCount}`,
+          105,
+          doc.internal.pageSize.height - 8,
+          { align: 'center' }
+        );
+      }
+
+      // Trigger instant direct download on Android & iOS
+      doc.save(`garuda_contributions_${selectedYear}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Please try again.');
     }
-
-    const tableRows = rankedContributors.map((cGroup, index) => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${index + 1}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${cGroup.name}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${cGroup.phone || 'N/A'}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">₹${cGroup.totalAmount.toLocaleString()}</td>
-      </tr>
-    `).join('');
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Team Garuda - Contributors List ${selectedYear}</title>
-          <style>
-            body {
-              font-family: system-ui, -apple-system, sans-serif;
-              color: #333;
-              padding: 40px;
-              margin: 0;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-            }
-            .header h1 {
-              margin: 0;
-              font-size: 24px;
-              color: #111;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-            .header p {
-              margin: 5px 0 0 0;
-              font-size: 12px;
-              color: #666;
-              font-weight: 600;
-            }
-            .summary-card {
-              background-color: #f8f9fa;
-              border: 1px solid #e9ecef;
-              border-radius: 12px;
-              padding: 20px;
-              margin-bottom: 30px;
-              display: flex;
-              justify-content: space-around;
-            }
-            .summary-item {
-              text-align: center;
-            }
-            .summary-item label {
-              font-size: 10px;
-              color: #888;
-              text-transform: uppercase;
-              font-weight: 700;
-              letter-spacing: 0.5px;
-            }
-            .summary-item span {
-              display: block;
-              font-size: 20px;
-              font-weight: 800;
-              color: #222;
-              margin-top: 5px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-            th {
-              background-color: #f1f3f5;
-              padding: 12px 10px;
-              font-size: 11px;
-              font-weight: 700;
-              text-transform: uppercase;
-              color: #495057;
-              border-bottom: 2px solid #dee2e6;
-            }
-            .footer {
-              margin-top: 60px;
-              text-align: center;
-              font-size: 10px;
-              color: #999;
-              border-top: 1px solid #eee;
-              padding-top: 20px;
-            }
-            .signature-area {
-              margin-top: 80px;
-              display: flex;
-              justify-content: space-between;
-              padding: 0 40px;
-            }
-            .signature-line {
-              border-top: 1px dashed #ccc;
-              width: 180px;
-              text-align: center;
-              padding-top: 8px;
-              font-size: 10px;
-              color: #666;
-              font-weight: bold;
-            }
-            @media print {
-              body {
-                padding: 20px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Team Garuda Committee</h1>
-            <p>Yearly Contributors Book • Statement of Accounts for ${selectedYear}</p>
-          </div>
-          
-          <div class="summary-card">
-            <div class="summary-item">
-              <label>Statement Year</label>
-              <span>${selectedYear}</span>
-            </div>
-            <div class="summary-item">
-              <label>Total Contributors</label>
-              <span>${rankedContributors.length}</span>
-            </div>
-            <div class="summary-item">
-              <label>Total Funds Collected</label>
-              <span>₹${totalAmountSum.toLocaleString()}</span>
-            </div>
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 10%; text-align: center;">Rank</th>
-                <th style="width: 50%; text-align: left;">Contributor Name</th>
-                <th style="width: 20%; text-align: left;">Phone</th>
-                <th style="width: 20%; text-align: right;">Total Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
-          </table>
-
-          <div class="signature-area">
-            <div class="signature-line">Recorded By</div>
-            <div class="signature-line">President / Treasurer</div>
-          </div>
-          
-          <div class="footer">
-            <p>Generated on ${new Date().toLocaleDateString()} • Team Garuda Official Contribution Statement</p>
-          </div>
-          
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
 
   // Group and Aggregate Contributions for the Current Year Ranking
