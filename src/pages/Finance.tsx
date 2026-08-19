@@ -113,6 +113,9 @@ export const Finance: React.FC = () => {
   const [eNotes, setENotes] = useState('');
   const [eReceipt, setEReceipt] = useState<File | null>(null);
 
+  // Year Filter
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+
   // --- Public Donation (Chandhalu) Form states ---
   const [chName, setChName] = useState('');
   const [chPhone, setChPhone] = useState('');
@@ -341,7 +344,27 @@ export const Finance: React.FC = () => {
       </div>
 
       {/* Segmented Tab Controls */}
-      <div className="p-4 shrink-0 bg-white/90 border-b border-border-custom">
+      <div className="p-4 shrink-0 bg-white/90 border-b border-border-custom flex flex-col gap-3">
+        {/* Year Selector */}
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Statement Year</span>
+          <div className="flex items-center gap-1 bg-secondary-bg p-0.5 rounded-lg border border-border-custom">
+            {[2026, 2025, 0].map((yr) => (
+              <button
+                key={yr}
+                onClick={() => setSelectedYear(yr)}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all cursor-pointer ${
+                  selectedYear === yr
+                    ? 'bg-primary-maroon text-white shadow-xs'
+                    : 'text-secondary-text hover:text-primary-text'
+                }`}
+              >
+                {yr === 0 ? 'All Time' : yr}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex bg-secondary-bg border border-border-custom p-0.5 rounded-xl">
           {(['CONTRIBUTIONS', 'SPONSORSHIPS', 'CHANDHALU', 'EXPENSES'] as const).map(tab => (
             <button
@@ -367,7 +390,9 @@ export const Finance: React.FC = () => {
       ) : (
         <div className="px-5 pt-4 flex flex-col gap-3">
           {/* 1. CONTRIBUTIONS LIST */}
-          {activeTab === 'CONTRIBUTIONS' && contributions.filter(item => item.member_id !== null).map(item => (
+          {activeTab === 'CONTRIBUTIONS' && contributions
+            .filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+            .map(item => (
             <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div className="flex flex-col gap-1 min-w-0">
                 <h4 className="text-xs font-extrabold text-primary-text truncate">{item.member?.name || 'Unknown'}</h4>
@@ -402,7 +427,9 @@ export const Finance: React.FC = () => {
           ))}
 
           {/* 2. SPONSORSHIPS LIST */}
-          {activeTab === 'SPONSORSHIPS' && sponsorships.map(item => (
+          {activeTab === 'SPONSORSHIPS' && sponsorships
+            .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+            .map(item => (
             <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div className="flex flex-col gap-1 min-w-0">
                 <h4 className="text-xs font-extrabold text-primary-text truncate">Committee: {item.sponsor.username}</h4>
@@ -433,7 +460,9 @@ export const Finance: React.FC = () => {
           ))}
 
           {/* 3. EXPENSES LIST */}
-          {activeTab === 'EXPENSES' && expenses.map(item => (
+          {activeTab === 'EXPENSES' && expenses
+            .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+            .map(item => (
             <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div className="flex flex-col gap-1 min-w-0">
                 <h4 className="text-xs font-extrabold text-primary-text truncate">{item.name}</h4>
@@ -471,7 +500,9 @@ export const Finance: React.FC = () => {
           ))}
 
           {/* 4. CHANDHALU LIST */}
-          {activeTab === 'CHANDHALU' && chandhalu.map(item => (
+          {activeTab === 'CHANDHALU' && chandhalu
+            .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+            .map(item => (
             <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div className="flex flex-col gap-1 min-w-0">
                 <h4 className="text-xs font-extrabold text-primary-text truncate">{item.donor_name}</h4>

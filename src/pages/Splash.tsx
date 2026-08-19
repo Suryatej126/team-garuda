@@ -6,10 +6,12 @@ interface SplashProps {
 }
 
 export const Splash: React.FC<SplashProps> = ({ onFinish }) => {
+  const [logoError, setLogoError] = React.useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
-    }, 1800);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [onFinish]);
 
@@ -20,11 +22,20 @@ export const Splash: React.FC<SplashProps> = ({ onFinish }) => {
       
       <div className="relative flex flex-col items-center">
         {/* Animated glowing outer ring */}
-        <div className="absolute w-24 h-24 rounded-full border border-antique-gold/25 animate-ping duration-[1200ms]" />
+        <div className="absolute w-24 h-24 rounded-full border border-antique-gold/25 animate-ping duration-[1000ms]" />
         
-        {/* Bird/Garuda icon container in maroon & gold */}
-        <div className="w-20 h-20 bg-primary-maroon rounded-3xl flex items-center justify-center shadow-[0_12px_36px_rgba(110,31,36,0.15)] z-10 border border-border-custom">
-          <Bird className="w-10 h-10 text-light-gold stroke-[1.8]" />
+        {/* Logo Container in maroon & gold */}
+        <div className="w-20 h-20 bg-primary-maroon rounded-3xl flex items-center justify-center shadow-[0_12px_36px_rgba(110,31,36,0.15)] z-10 border border-border-custom overflow-hidden">
+          {!logoError ? (
+            <img 
+              src="/logo.png" 
+              alt="Team Garuda Logo" 
+              className="w-full h-full object-contain p-2"
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <Bird className="w-10 h-10 text-light-gold stroke-[1.8]" />
+          )}
         </div>
       </div>
       

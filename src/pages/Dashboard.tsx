@@ -45,6 +45,7 @@ export const Dashboard: React.FC = () => {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [recentFeed, setRecentFeed] = useState<ContributionFeedItem[]>([]);
   const [membersCount, setMembersCount] = useState(24);
@@ -73,7 +74,11 @@ export const Dashboard: React.FC = () => {
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const summaryRes = await fetch(`${API_BASE_URL}/api/finance/summary`, { headers });
+        const summaryUrl = selectedYear > 0 
+          ? `${API_BASE_URL}/api/finance/summary?year=${selectedYear}`
+          : `${API_BASE_URL}/api/finance/summary?year=-1`;
+
+        const summaryRes = await fetch(summaryUrl, { headers });
         const feedRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
         const membersRes = await fetch(`${API_BASE_URL}/api/committee/members`, { headers });
         const eventsRes = await fetch(`${API_BASE_URL}/api/public/events`);
@@ -87,7 +92,12 @@ export const Dashboard: React.FC = () => {
           const summaryData = await summaryRes.json();
           const feedData = await feedRes.json();
           setSummary(summaryData);
-          setRecentFeed(feedData.slice(0, 4));
+          
+          // Filter recent feed by selected year if applicable
+          const filteredFeed = selectedYear > 0 
+            ? feedData.filter((c: any) => new Date(c.date).getFullYear() === selectedYear)
+            : feedData;
+          setRecentFeed(filteredFeed.slice(0, 4));
 
           // Set counts
           if (membersRes.ok) {
@@ -97,16 +107,15 @@ export const Dashboard: React.FC = () => {
           if (eventsRes.ok) {
             const eData = await eventsRes.json();
             const thisMonth = new Date().getMonth();
-            const thisYear = new Date().getFullYear();
             const monthly = eData.filter((e: any) => {
               const d = new Date(e.date);
-              return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+              return d.getMonth() === thisMonth && (selectedYear > 0 ? d.getFullYear() === selectedYear : true);
             });
             setEventsCount(monthly.length || eData.length || 3);
           }
 
-          const uniqueC = new Set(feedData.filter((c: any) => c.status === 'PAID').map((c: any) => c.contributor_id || c.name));
-          setContributorsCount(uniqueC.size || 24);
+          const uniqueC = new Set(filteredFeed.filter((c: any) => c.status === 'PAID').map((c: any) => c.contributor_id || c.name));
+          setContributorsCount(uniqueC.size || filteredFeed.length || 0);
 
           setError(null);
         } else {
@@ -120,7 +129,7 @@ export const Dashboard: React.FC = () => {
       }
     };
     fetchDashboardData();
-  }, [token, retryTrigger, logout]);
+  }, [token, selectedYear, retryTrigger, logout]);
 
   if (loading) {
     return (
@@ -281,7 +290,25 @@ export const Dashboard: React.FC = () => {
 
         {/* Statistics section - Grid of 4 premium cards */}
         <div className="flex flex-col gap-3">
-          <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Financial & Operations Summary</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Financial Summary</span>
+            {/* Year Selector Pills */}
+            <div className="flex items-center gap-1 bg-secondary-bg p-0.5 rounded-lg border border-border-custom">
+              {[2026, 2025, 0].map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => setSelectedYear(yr)}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all cursor-pointer ${
+                    selectedYear === yr
+                      ? 'bg-primary-maroon text-white shadow-xs'
+                      : 'text-secondary-text hover:text-primary-text'
+                  }`}
+                >
+                  {yr === 0 ? 'All Time' : yr}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             {/* 1. TOTAL COLLECTION */}
             <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between h-28">

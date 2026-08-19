@@ -20,10 +20,17 @@ import { AdminSettings } from './pages/AdminSettings';
 
 const AppContent: React.FC = () => {
   const { role, loading } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('tg_splash_shown');
+  });
+
+  const handleSplashFinish = () => {
+    sessionStorage.setItem('tg_splash_shown', 'true');
+    setShowSplash(false);
+  };
 
   if (showSplash) {
-    return <Splash onFinish={() => setShowSplash(false)} />;
+    return <Splash onFinish={handleSplashFinish} />;
   }
 
   if (loading) {

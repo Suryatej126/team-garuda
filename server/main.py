@@ -336,25 +336,33 @@ def get_public_media(event_id: Optional[int] = None, db: Session = Depends(get_d
 
 # Finance Summary
 @app.get("/api/finance/summary", response_model=FinanceSummaryResponse)
-def get_finance_summary(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
-    # Total Paid Contributions
-    total_contributions = float(db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID", Contribution.member_id != None).scalar() or 0.0)
-    # Total Paid Sponsorships
-    total_sponsorships = float(db.query(func.sum(Sponsorship.amount)).filter(Sponsorship.status == "PAID").scalar() or 0.0)
-    # Total Public Donations (Chandhalu)
-    total_chandhalu = float(db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID", Contribution.member_id == None).scalar() or 0.0)
-    
-    # Total Funds
+def get_finance_summary(year: Optional[int] = None, db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    # Default to current year (2026) if not specified; if year is -1, calculate all-time
+    target_year = year if year is not None else datetime.date.today().year
+
+    # Base queries
+    contrib_q = db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID", Contribution.member_id != None)
+    spons_q = db.query(func.sum(Sponsorship.amount)).filter(Sponsorship.status == "PAID")
+    chandha_q = db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID", Contribution.member_id == None)
+    expense_q = db.query(func.sum(Expense.amount))
+    cat_q = db.query(Expense.category, func.sum(Expense.amount))
+
+    # Apply year filter if not all-time (-1)
+    if target_year > 0:
+        contrib_q = contrib_q.filter(func.extract('year', Contribution.date) == target_year)
+        spons_q = spons_q.filter(func.extract('year', Sponsorship.date) == target_year)
+        chandha_q = chandha_q.filter(func.extract('year', Contribution.date) == target_year)
+        expense_q = expense_q.filter(func.extract('year', Expense.date) == target_year)
+        cat_q = cat_q.filter(func.extract('year', Expense.date) == target_year)
+
+    total_contributions = float(contrib_q.scalar() or 0.0)
+    total_sponsorships = float(spons_q.scalar() or 0.0)
+    total_chandhalu = float(chandha_q.scalar() or 0.0)
     total_funds = total_contributions + total_sponsorships + total_chandhalu
-    
-    # Total Expenses
-    total_expenses = float(db.query(func.sum(Expense.amount)).scalar() or 0.0)
-    
-    # Current Balance
+    total_expenses = float(expense_q.scalar() or 0.0)
     current_balance = total_funds - total_expenses
-    
-    # Expenses by Category
-    category_summary = db.query(Expense.category, func.sum(Expense.amount)).group_by(Expense.category).all()
+
+    category_summary = cat_q.group_by(Expense.category).all()
     expense_by_category = {cat: float(amt) for cat, amt in category_summary}
 
     return {
