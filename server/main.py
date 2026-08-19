@@ -29,6 +29,11 @@ app.add_middleware(
 # Mount Uploads directory for static access
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+# Health check endpoint (used by Render to verify the server is up)
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "Team Garuda API"}
+
 # --- Pydantic Schemas ---
 class Token(BaseModel):
     access_token: str
