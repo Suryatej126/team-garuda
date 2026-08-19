@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, ArrowLeft, Film } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Event {
   id: number;
@@ -32,8 +33,8 @@ export const EventDetails: React.FC = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const eventRes = await fetch(`http://localhost:8000/api/public/events/${id}`);
-        const mediaRes = await fetch(`http://localhost:8000/api/public/media?event_id=${id}`);
+        const eventRes = await fetch(`${API_BASE_URL}/api/public/events/${id}`);
+        const mediaRes = await fetch(`${API_BASE_URL}/api/public/media?event_id=${id}`);
         if (eventRes.ok) {
           const eventData = await eventRes.json();
           setEvent(eventData);

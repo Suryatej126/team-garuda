@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Film, Image as ImageIcon, X, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface MediaItem {
   id: number;
@@ -21,7 +22,7 @@ export const Gallery: React.FC = () => {
   useEffect(() => {
     const fetchMedia = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/public/media');
+        const res = await fetch(`${API_BASE_URL}/api/public/media`);
         if (res.ok) {
           const data = await res.json();
           setMedia(data);

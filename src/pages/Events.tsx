@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, ChevronRight } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Event {
   id: number;
@@ -22,7 +23,7 @@ export const Events: React.FC = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/public/events');
+        const res = await fetch(`${API_BASE_URL}/api/public/events`);
         if (res.ok) {
           const data = await res.json();
           setEvents(data);

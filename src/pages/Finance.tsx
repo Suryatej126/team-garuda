@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
 import { Trash2, Plus, Receipt, Paperclip } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Member {
   id: number;
@@ -125,10 +126,10 @@ export const Finance: React.FC = () => {
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      const contribsRes = await fetch('http://localhost:8000/api/committee/contributions', { headers });
-      const sponsRes = await fetch('http://localhost:8000/api/committee/sponsorships', { headers });
-      const expRes = await fetch('http://localhost:8000/api/committee/expenses', { headers });
-      const chandhaRes = await fetch('http://localhost:8000/api/committee/chandhalu', { headers });
+      const contribsRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
+      const sponsRes = await fetch(`${API_BASE_URL}/api/committee/sponsorships`, { headers });
+      const expRes = await fetch(`${API_BASE_URL}/api/committee/expenses`, { headers });
+      const chandhaRes = await fetch(`${API_BASE_URL}/api/committee/chandhalu`, { headers });
 
       if (contribsRes.status === 401 || sponsRes.status === 401 || expRes.status === 401 || chandhaRes.status === 401) {
         logout();
@@ -149,8 +150,8 @@ export const Finance: React.FC = () => {
   const fetchMeta = async () => {
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      const mRes = await fetch('http://localhost:8000/api/committee/members', { headers });
-      const eRes = await fetch('http://localhost:8000/api/public/events');
+      const mRes = await fetch(`${API_BASE_URL}/api/committee/members`, { headers });
+      const eRes = await fetch(`${API_BASE_URL}/api/public/events`);
       
       if (mRes.status === 401) {
         logout();
@@ -203,7 +204,7 @@ export const Finance: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
     try {
       const endpoint = type === 'CONTRIBUTION' ? 'contributions' : type === 'SPONSORSHIP' ? 'sponsorships' : type === 'EXPENSE' ? 'expenses' : 'chandhalu';
-      const res = await fetch(`http://localhost:8000/api/committee/${endpoint}/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/committee/${endpoint}/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -232,7 +233,7 @@ export const Finance: React.FC = () => {
           setSaving(false);
           return;
         }
-        url = 'http://localhost:8000/api/committee/contributions';
+        url = `${API_BASE_URL}/api/committee/contributions`;
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
           member_id: Number(cMemberId),
@@ -251,7 +252,7 @@ export const Finance: React.FC = () => {
           setSaving(false);
           return;
         }
-        url = 'http://localhost:8000/api/committee/sponsorships';
+        url = `${API_BASE_URL}/api/committee/sponsorships`;
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
           user_id: user?.id || 1, // current user id
@@ -270,7 +271,7 @@ export const Finance: React.FC = () => {
           setSaving(false);
           return;
         }
-        url = 'http://localhost:8000/api/committee/expenses';
+        url = `${API_BASE_URL}/api/committee/expenses`;
         // Multipart Form Data for receipt upload
         const formData = new FormData();
         formData.append('name', eName);
@@ -290,7 +291,7 @@ export const Finance: React.FC = () => {
           setSaving(false);
           return;
         }
-        url = 'http://localhost:8000/api/committee/chandhalu';
+        url = `${API_BASE_URL}/api/committee/chandhalu`;
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
           donor_name: chName,
@@ -449,7 +450,7 @@ export const Finance: React.FC = () => {
                   <span className="text-xs font-black text-error">₹{Number(item.amount).toLocaleString()}</span>
                   {item.receipt_url && (
                     <a 
-                      href={`http://localhost:8000${item.receipt_url}`} 
+                      href={`${API_BASE_URL}${item.receipt_url}`} 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-[9px] font-bold text-primary-maroon flex items-center gap-0.5 hover:underline"

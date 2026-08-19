@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, ArrowRight, Sparkles, Film } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 interface Event {
   id: number;
@@ -32,8 +33,8 @@ export const Home: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const eventsRes = await fetch('http://localhost:8000/api/public/events');
-        const mediaRes = await fetch('http://localhost:8000/api/public/media');
+        const eventsRes = await fetch(`${API_BASE_URL}/api/public/events`);
+        const mediaRes = await fetch(`${API_BASE_URL}/api/public/media`);
         if (eventsRes.ok && mediaRes.ok) {
           const eventsData = await eventsRes.json();
           const mediaData = await mediaRes.json();

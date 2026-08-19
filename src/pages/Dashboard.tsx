@@ -13,6 +13,7 @@ import {
   ChevronRight,
   HandCoins
 } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface FinanceSummary {
   total_contributions: number;
@@ -72,10 +73,10 @@ export const Dashboard: React.FC = () => {
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        const summaryRes = await fetch('http://localhost:8000/api/finance/summary', { headers });
-        const feedRes = await fetch('http://localhost:8000/api/committee/contributions', { headers });
-        const membersRes = await fetch('http://localhost:8000/api/committee/members', { headers });
-        const eventsRes = await fetch('http://localhost:8000/api/public/events');
+        const summaryRes = await fetch(`${API_BASE_URL}/api/finance/summary`, { headers });
+        const feedRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
+        const membersRes = await fetch(`${API_BASE_URL}/api/committee/members`, { headers });
+        const eventsRes = await fetch(`${API_BASE_URL}/api/public/events`);
 
         if (summaryRes.status === 401 || feedRes.status === 401 || membersRes.status === 401) {
           logout();

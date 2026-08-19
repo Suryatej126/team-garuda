@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
 import { Film, Image as ImageIcon, Plus, Trash2, Paperclip } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Event {
   id: number;
@@ -37,7 +38,7 @@ export const MediaManagement: React.FC = () => {
   const fetchMedia = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/public/media');
+      const res = await fetch(`${API_BASE_URL}/api/public/media`);
       if (res.ok) {
         setMedia(await res.json());
       }
@@ -50,7 +51,7 @@ export const MediaManagement: React.FC = () => {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/public/events');
+      const res = await fetch(`${API_BASE_URL}/api/public/events`);
       if (res.ok) {
         const data = await res.json();
         setEvents(data);
@@ -78,7 +79,7 @@ export const MediaManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this media item from the public gallery?')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/committee/media/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/committee/media/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -106,7 +107,7 @@ export const MediaManagement: React.FC = () => {
       formData.append('caption', mCaption);
       formData.append('file', mFile);
 
-      const res = await fetch('http://localhost:8000/api/committee/media', {
+      const res = await fetch(`${API_BASE_URL}/api/committee/media`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData

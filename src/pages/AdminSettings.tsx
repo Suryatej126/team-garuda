@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
 import { Settings, LogOut, UserCheck, PlusCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface UserRecord {
   id: number;
@@ -32,7 +33,7 @@ export const AdminSettings: React.FC = () => {
     if (!isAdmin) return;
     setLoadingUsers(true);
     try {
-      const res = await fetch('http://localhost:8000/api/admin/users', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -68,7 +69,7 @@ export const AdminSettings: React.FC = () => {
     setSaving(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/admin/users', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

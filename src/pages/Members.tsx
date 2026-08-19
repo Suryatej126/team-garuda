@@ -17,6 +17,7 @@ import {
   Printer,
   FileText
 } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Contributor {
   id: number;
@@ -119,10 +120,10 @@ export const Members: React.FC = () => {
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      const contribsRes = await fetch('http://localhost:8000/api/committee/contributions', { headers });
-      const contributorsRes = await fetch('http://localhost:8000/api/committee/contributors', { headers });
-      const membersRes = await fetch('http://localhost:8000/api/committee/members', { headers });
-      const eventsRes = await fetch('http://localhost:8000/api/public/events');
+      const contribsRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
+      const contributorsRes = await fetch(`${API_BASE_URL}/api/committee/contributors`, { headers });
+      const membersRes = await fetch(`${API_BASE_URL}/api/committee/members`, { headers });
+      const eventsRes = await fetch(`${API_BASE_URL}/api/public/events`);
 
       if (contribsRes.status === 401 || contributorsRes.status === 401 || membersRes.status === 401) {
         logout();
@@ -264,8 +265,8 @@ export const Members: React.FC = () => {
 
     try {
       const url = editingContribution 
-        ? `http://localhost:8000/api/committee/contributions/${editingContribution.id}`
-        : 'http://localhost:8000/api/committee/contributions';
+        ? `${API_BASE_URL}/api/committee/contributions/${editingContribution.id}`
+        : `${API_BASE_URL}/api/committee/contributions`;
       
       const method = editingContribution ? 'PUT' : 'POST';
       const bodyPayload = {
@@ -322,7 +323,7 @@ export const Members: React.FC = () => {
   const confirmDelete = async () => {
     if (!contributionToDelete) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/committee/contributions/${contributionToDelete.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/committee/contributions/${contributionToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -408,7 +409,7 @@ export const Members: React.FC = () => {
       }
 
       try {
-        const res = await fetch('http://localhost:8000/api/committee/contributions', {
+        const res = await fetch(`${API_BASE_URL}/api/committee/contributions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

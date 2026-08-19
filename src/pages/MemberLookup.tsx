@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Wallet, ShieldCheck, KeyRound, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Contribution {
   id: number;
@@ -33,7 +34,7 @@ export const MemberLookup: React.FC = () => {
       const fetchLedger = async () => {
         setLoadingLedger(true);
         try {
-          const res = await fetch(`http://localhost:8000/api/member/contributions?member_id=${verifiedMember.member_id}`);
+          const res = await fetch(`${API_BASE_URL}/api/member/contributions?member_id=${verifiedMember.member_id}`);
           if (res.ok) {
             const data = await res.json();
             setContributions(data);
@@ -58,7 +59,7 @@ export const MemberLookup: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/auth/verify-member', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ member_id: memberIdInput.toUpperCase(), pin: pinInput }),
