@@ -25,7 +25,7 @@ def seed_db():
         admin = User(
             username="admin",
             email="admin@teamgaruda.in",
-            password_hash=hash_password("adminpassword"),
+            password_hash=hash_password("admin123"),
             role="ADMIN"
         )
         suriya = User(
