@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PhoneWrapper } from './components/PhoneWrapper';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Splash } from './pages/Splash';
+import { GaneshaLoader } from './components/GaneshaLoader';
 
 // Pages imports
 import { Home } from './pages/Home';
@@ -17,6 +18,38 @@ import { Members } from './pages/Members';
 import { Finance } from './pages/Finance';
 import { MediaManagement } from './pages/MediaManagement';
 import { AdminSettings } from './pages/AdminSettings';
+
+const ScreenTransitionContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    if (prevPath.current !== location.pathname) {
+      prevPath.current = location.pathname;
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 1100); // 1.1s smooth screen transition loader
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+      {isTransitioning && (
+        <div className="absolute inset-0 z-50 animate-fade-in">
+          <GaneshaLoader 
+            message="TEAM GARUDA" 
+            subMessage="Sri Ganesha Krupa" 
+            isFullPage={false} 
+          />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+};
 
 const AppContent: React.FC = () => {
   const { role, loading } = useAuth();
@@ -35,9 +68,8 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-secondary-bg flex flex-col justify-center items-center">
-        <div className="w-8 h-8 rounded-full border-2 border-t-primary-maroon border-border-custom animate-spin" />
-        <span className="mt-3 text-xs text-secondary-text font-medium">Loading...</span>
+      <div className="min-h-screen bg-primary-bg flex flex-col justify-center items-center">
+        <GaneshaLoader message="TEAM GARUDA" subMessage="Loading..." isFullPage={true} />
       </div>
     );
   }
@@ -47,8 +79,7 @@ const AppContent: React.FC = () => {
   return (
     <Router>
       <PhoneWrapper>
-        {/* Scrollable routing container */}
-        <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+        <ScreenTransitionContainer>
           <Routes>
             {isPublicOrMember ? (
               // Public / Member Portal Routes
@@ -75,7 +106,7 @@ const AppContent: React.FC = () => {
               </>
             )}
           </Routes>
-        </div>
+        </ScreenTransitionContainer>
 
         {/* Sticky bottom navigation bar */}
         <BottomNavigation />
