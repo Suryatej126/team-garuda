@@ -21,50 +21,37 @@ def seed_db():
 
         print("Cleared existing database tables.")
 
-        # 1. Seed Users (Admin & Committee)
+        # 1. Seed Users (Admin & Main Committee Members)
         admin = User(
             username="admin",
             email="admin@teamgaruda.in",
             password_hash=hash_password("admin123"),
             role="ADMIN"
         )
-        suriya = User(
-            username="suriya",
-            email="suriya@teamgaruda.in",
-            password_hash=hash_password("committeepassword"),
-            role="COMMITTEE"
-        )
-        teja = User(
-            username="teja",
-            email="teja@teamgaruda.in",
-            password_hash=hash_password("committeepassword"),
-            role="COMMITTEE"
-        )
-        vinay = User(
-            username="vinay",
-            email="vinay@teamgaruda.in",
-            password_hash=hash_password("committeepassword"),
-            role="COMMITTEE"
-        )
+        comm_pass_hash = hash_password("garuda123")
+        aditya = User(username="aditya", email="aditya@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
+        narendra = User(username="narendra", email="narendra@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
+        hemaraj = User(username="hemaraj", email="hemaraj@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
+        bhimeesh = User(username="bhimeesh", email="bhimeesh@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
+        ganesh = User(username="ganesh", email="ganesh@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
+        prakash = User(username="prakash", email="prakash@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
 
-        db.add_all([admin, suriya, teja, vinay])
+        db.add_all([admin, aditya, narendra, hemaraj, bhimeesh, ganesh, prakash])
         db.commit()
-        db.refresh(admin)
-        db.refresh(suriya)
-        db.refresh(teja)
-        db.refresh(vinay)
+        for u in [admin, aditya, narendra, hemaraj, bhimeesh, ganesh, prakash]:
+            db.refresh(u)
 
-        print("Seeded 1 Admin and 3 Committee users.")
+        print("Seeded 1 Admin and 6 Committee users.")
 
-        # 2. Seed Members (10 Normal Members, all PINs are "123456")
+        # 2. Seed Members (Committee & Core Members, all PINs are "123456")
         member_pin_hash = hash_password("123456")
         members_data = [
-            {"member_id": "TG001", "name": "Surya Teja", "phone": "+91 98765 43210"},
-            {"member_id": "TG002", "name": "Vinayaka Sharma", "phone": "+91 91234 56789"},
-            {"member_id": "TG003", "name": "Karthik Raja", "phone": "+91 99887 76655"},
-            {"member_id": "TG004", "name": "Divya Sri", "phone": "+91 88877 66554"},
-            {"member_id": "TG005", "name": "Lakshmi Prasad", "phone": "+91 77766 55443"},
-            {"member_id": "TG006", "name": "Mohan Babu", "phone": "+91 66655 44332"},
+            {"member_id": "TG001", "name": "Aditya", "phone": "8919823457"},
+            {"member_id": "TG002", "name": "Narendra", "phone": "9666865197"},
+            {"member_id": "TG003", "name": "Hema Raj", "phone": "8639273539"},
+            {"member_id": "TG004", "name": "Bhimeesh", "phone": "9398555549"},
+            {"member_id": "TG005", "name": "Ganesh", "phone": "6304934345"},
+            {"member_id": "TG006", "name": "Prakash", "phone": "9440540886"},
             {"member_id": "TG007", "name": "Sridhar Reddy", "phone": "+91 95544 33221"},
             {"member_id": "TG008", "name": "Anusha Rao", "phone": "+91 84433 22110"},
             {"member_id": "TG009", "name": "Ramesh Kumar", "phone": "+91 73322 11009"},
