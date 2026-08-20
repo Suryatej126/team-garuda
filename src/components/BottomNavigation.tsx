@@ -63,7 +63,7 @@ export const BottomNavigation: React.FC = () => {
     // Committee / Admin tabs — Replaced Media with Expenses
     const tabs = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { id: 'members', label: 'Members', icon: Users, path: '/members' },
+      { id: 'members', label: 'Chandhalu', icon: Users, path: '/members' },
       { id: 'finance', label: 'Finance', icon: Landmark, path: '/finance' },
       { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
       { id: 'more', label: 'More', icon: Menu, path: '/more' },
