@@ -1,32 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Wallet, ShieldCheck, KeyRound, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { KeyRound, ShieldCheck, CheckCircle2, Wallet, Calendar, AlertCircle } from 'lucide-react';
 
-interface Contribution {
+interface VerifiedMember {
+  member_id: string;
+  name: string;
+  phone: string;
+}
+
+interface MemberContribution {
   id: number;
   amount: number;
   date: string;
   payment_method: string;
-  transaction_id: string;
   status: string;
-  notes: string;
+  transaction_id: string | null;
   event?: {
     name: string;
   };
 }
 
 export const MemberLookup: React.FC = () => {
-  const { verifiedMember, verifyMember, logout } = useAuth();
-  
-  // Login Form states
   const [memberIdInput, setMemberIdInput] = useState('');
   const [pinInput, setPinInput] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Ledger states
-  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [verifiedMember, setVerifiedMember] = useState<VerifiedMember | null>(() => {
+    const saved = localStorage.getItem('tg_verified_member');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [contributions, setContributions] = useState<MemberContribution[]>([]);
   const [loadingLedger, setLoadingLedger] = useState(false);
 
   useEffect(() => {
@@ -62,20 +67,32 @@ export const MemberLookup: React.FC = () => {
       const res = await fetch(`${API_BASE_URL}/api/auth/verify-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: memberIdInput.toUpperCase(), pin: pinInput }),
+        body: JSON.stringify({
+          member_id: memberIdInput.trim().toUpperCase(),
+          pin: pinInput.trim()
+        })
       });
+
       if (res.ok) {
-        const memberData = await res.json();
-        verifyMember(memberData);
+        const data = await res.json();
+        setVerifiedMember(data);
+        localStorage.setItem('tg_verified_member', JSON.stringify(data));
       } else {
         const errData = await res.json();
-        setErrorMsg(errData.detail || 'Verification failed.');
+        setErrorMsg(errData.detail || 'Invalid Member ID or PIN.');
       }
     } catch (err) {
-      setErrorMsg('Network error. Check backend connection.');
+      setErrorMsg('Connection error. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('tg_verified_member');
+    setVerifiedMember(null);
+    setMemberIdInput('');
+    setPinInput('');
   };
 
   const totalPaid = contributions
@@ -87,14 +104,17 @@ export const MemberLookup: React.FC = () => {
     .reduce((sum, c) => sum + Number(c.amount), 0);
 
   return (
-    <div className="flex-1 flex flex-col bg-neutral-950 text-neutral-100 overflow-y-auto no-scrollbar pb-6">
+    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-10">
       {/* Header Bar */}
-      <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-neutral-900 bg-neutral-950/80 backdrop-blur sticky top-0 z-30">
-        <h2 className="text-base font-extrabold tracking-tight">Member Portal</h2>
+      <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
+        <div>
+          <h2 className="text-base font-bold tracking-tight text-primary-maroon font-serif">Member Portal</h2>
+          <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Contribution Ledger</span>
+        </div>
         {verifiedMember && (
           <button 
-            onClick={logout}
-            className="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-3 py-1.5 rounded-full border border-rose-500/20 active:scale-95 transition-all"
+            onClick={handleSignOut}
+            className="text-[10px] font-bold text-error bg-error/10 px-3 py-1.5 rounded-full border border-error/20 active:scale-95 transition-all cursor-pointer"
           >
             Sign Out
           </button>
@@ -107,41 +127,41 @@ export const MemberLookup: React.FC = () => {
           /* VERIFICATION FORM */
           <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-8">
             <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-antique-gold/15 border border-antique-gold/30 flex items-center justify-center text-antique-gold mb-4 shadow-sm">
                 <KeyRound className="w-7 h-7 stroke-[2]" />
               </div>
-              <h3 className="text-lg font-black tracking-tight text-neutral-100">Verify Identity</h3>
-              <p className="text-xs text-neutral-500 mt-2 max-w-[260px] leading-relaxed">
-                Enter your Team Garuda Member ID and 6-digit PIN to check your contribution ledger.
+              <h3 className="text-lg font-bold tracking-tight text-primary-maroon font-serif">Verify Identity</h3>
+              <p className="text-xs text-secondary-text mt-2 max-w-[260px] leading-relaxed">
+                Enter your Team Garuda Member ID and 6-digit PIN to check your personal contribution ledger.
               </p>
             </div>
 
             <form onSubmit={handleVerify} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Member ID</label>
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Member ID</label>
                 <input 
                   type="text" 
                   placeholder="e.g. TG001" 
                   value={memberIdInput}
                   onChange={e => setMemberIdInput(e.target.value)}
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/80 uppercase font-semibold text-neutral-100 placeholder:text-neutral-600"
+                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-maroon/80 uppercase font-semibold text-primary-text placeholder:text-secondary-text/50 shadow-sm"
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">6-Digit Secure PIN</label>
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">6-Digit Secure PIN</label>
                 <input 
                   type="password" 
                   placeholder="••••••" 
                   maxLength={6}
                   value={pinInput}
                   onChange={e => setPinInput(e.target.value)}
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/80 tracking-widest font-mono text-neutral-100 placeholder:text-neutral-600"
+                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-maroon/80 tracking-widest font-mono text-primary-text placeholder:text-secondary-text/50 shadow-sm"
                 />
               </div>
 
               {errorMsg && (
-                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs px-3.5 py-3 rounded-xl flex items-center gap-2">
+                <div className="bg-error/10 border border-error/20 text-error text-xs px-3.5 py-3 rounded-xl flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
@@ -150,10 +170,10 @@ export const MemberLookup: React.FC = () => {
               <button 
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-neutral-950 font-extrabold text-xs py-3.5 rounded-xl mt-2 active:scale-95 transition-all shadow-[0_4px_20px_rgba(249,115,22,0.15)] flex justify-center items-center"
+                className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-3.5 rounded-xl mt-2 active:scale-95 transition-all shadow-md flex justify-center items-center cursor-pointer"
               >
                 {submitting ? (
-                  <div className="w-4.5 h-4.5 rounded-full border-2 border-neutral-950 border-t-transparent animate-spin" />
+                  <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                 ) : (
                   <span>Verify Account</span>
                 )}
@@ -164,45 +184,45 @@ export const MemberLookup: React.FC = () => {
           /* MEMBER DASHBOARD */
           <div className="flex flex-col gap-6">
             {/* Member Card banner */}
-            <div className="bg-gradient-to-br from-neutral-900 to-neutral-900/60 border border-neutral-800 p-5 rounded-3xl relative overflow-hidden">
-              <div className="absolute right-4 bottom-4 opacity-5 pointer-events-none">
-                <ShieldCheck className="w-32 h-32 text-orange-500" />
+            <div className="bg-white border border-border-custom p-5 rounded-3xl relative overflow-hidden shadow-sm">
+              <div className="absolute right-4 bottom-4 opacity-5 pointer-events-none text-antique-gold">
+                <ShieldCheck className="w-32 h-32" />
               </div>
-              <span className="text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="text-[9px] font-extrabold bg-success/10 text-success border border-success/25 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 Verified Member
               </span>
-              <h2 className="text-xl font-black text-neutral-100 mt-2">{verifiedMember.name}</h2>
-              <p className="text-xs font-semibold text-neutral-400 font-mono mt-1">{verifiedMember.member_id}</p>
+              <h2 className="text-xl font-bold text-primary-maroon font-serif mt-2">{verifiedMember.name}</h2>
+              <p className="text-xs font-semibold text-secondary-text font-mono mt-1">{verifiedMember.member_id}</p>
             </div>
 
             {/* Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-neutral-900/60 border border-neutral-800/80 p-4 rounded-2xl">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Paid Ledger</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm">
+                <div className="flex justify-between items-center mb-1 text-success">
+                  <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Paid Ledger</span>
+                  <CheckCircle2 className="w-4 h-4" />
                 </div>
-                <span className="text-lg font-black text-emerald-400">₹{totalPaid.toLocaleString()}</span>
+                <span className="text-lg font-black text-success">₹{totalPaid.toLocaleString()}</span>
               </div>
 
-              <div className="bg-neutral-900/60 border border-neutral-800/80 p-4 rounded-2xl">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Pending Pledges</span>
-                  <Wallet className="w-4 h-4 text-orange-400" />
+              <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm">
+                <div className="flex justify-between items-center mb-1 text-antique-gold">
+                  <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Pending Pledges</span>
+                  <Wallet className="w-4 h-4" />
                 </div>
-                <span className="text-lg font-black text-orange-400">₹{totalPending.toLocaleString()}</span>
+                <span className="text-lg font-black text-antique-gold">₹{totalPending.toLocaleString()}</span>
               </div>
             </div>
 
             {/* Ledger List */}
             <div className="flex flex-col gap-3">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-neutral-400">Ledger Statement</h3>
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-secondary-text">Ledger Statement</h3>
               {loadingLedger ? (
                 <div className="py-12 flex justify-center">
-                  <div className="w-6 h-6 rounded-full border-2 border-t-orange-500 border-neutral-800 animate-spin" />
+                  <div className="w-6 h-6 rounded-full border-2 border-t-primary-maroon border-border-custom animate-spin" />
                 </div>
               ) : contributions.length === 0 ? (
-                <div className="text-center p-6 border border-dashed border-neutral-800 rounded-2xl text-xs text-neutral-600">
+                <div className="text-center p-6 border border-dashed border-border-custom rounded-2xl text-xs text-secondary-text bg-white">
                   No contributions found on this account ledger.
                 </div>
               ) : (
@@ -210,16 +230,16 @@ export const MemberLookup: React.FC = () => {
                   {contributions.map(item => (
                     <div 
                       key={item.id} 
-                      className="bg-neutral-900/40 border border-neutral-850 p-4 rounded-2xl flex items-center justify-between"
+                      className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm"
                     >
                       <div className="flex flex-col gap-1 min-w-0">
-                        <h4 className="text-xs font-extrabold text-neutral-200 truncate">
+                        <h4 className="text-xs font-extrabold text-primary-text truncate">
                           {item.event?.name || "Garuda Community Fund"}
                         </h4>
                         
-                        <div className="flex items-center gap-3 text-[10px] text-neutral-500 font-medium">
+                        <div className="flex items-center gap-3 text-[10px] text-secondary-text font-medium">
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-neutral-650" />
+                            <Calendar className="w-3.5 h-3.5 text-antique-gold" />
                             <span>{item.date}</span>
                           </span>
                           <span>•</span>
@@ -234,9 +254,9 @@ export const MemberLookup: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-xs font-black text-neutral-200">₹{Number(item.amount).toLocaleString()}</span>
+                        <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
                         <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${
-                          item.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'
+                          item.status === 'PAID' ? 'bg-success/10 text-success' : 'bg-antique-gold/10 text-antique-gold'
                         }`}>
                           {item.status}
                         </span>

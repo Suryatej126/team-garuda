@@ -624,7 +624,7 @@ export const Members: React.FC = () => {
   const highestContributor = rankedContributors.length > 0 ? rankedContributors[0] : null;
 
   return (
-    <div className="flex-1 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-6 relative">
+    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-10 relative">
       
       {/* Header Bar */}
       <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
