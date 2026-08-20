@@ -197,6 +197,15 @@ class SponsorshipCreate(BaseModel):
     status: Optional[str] = "PENDING"
     notes: Optional[str] = None
 
+class SponsorshipUpdate(BaseModel):
+    amount: Optional[float] = None
+    date: Optional[datetime.date] = None
+    payment_method: Optional[str] = None
+    transaction_id: Optional[str] = None
+    event_id: Optional[int] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
 class ExpenseResponse(BaseModel):
     id: int
     name: str
@@ -644,6 +653,31 @@ def create_sponsorship(spons_data: SponsorshipCreate, db: Session = Depends(get_
         notes=spons_data.notes
     )
     db.add(spons)
+    db.commit()
+    db.refresh(spons)
+    return spons
+
+@app.put("/api/committee/sponsorships/{spons_id}", response_model=SponsorshipResponse)
+def update_sponsorship(spons_id: int, spons_data: SponsorshipUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    spons = db.query(Sponsorship).filter(Sponsorship.id == spons_id).first()
+    if not spons:
+        raise HTTPException(status_code=404, detail="Sponsorship not found")
+        
+    if spons_data.amount is not None:
+        spons.amount = spons_data.amount
+    if spons_data.date is not None:
+        spons.date = spons_data.date
+    if spons_data.payment_method is not None:
+        spons.payment_method = spons_data.payment_method
+    if spons_data.transaction_id is not None:
+        spons.transaction_id = spons_data.transaction_id
+    if spons_data.event_id is not None:
+        spons.event_id = spons_data.event_id
+    if spons_data.status is not None:
+        spons.status = spons_data.status
+    if spons_data.notes is not None:
+        spons.notes = spons_data.notes
+        
     db.commit()
     db.refresh(spons)
     return spons

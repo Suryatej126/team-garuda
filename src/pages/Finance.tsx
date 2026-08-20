@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Trash2, Plus, Gift } from 'lucide-react';
+import { Trash2, Plus, Gift, Edit2, CheckCircle2, Clock } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface Member {
@@ -61,14 +61,16 @@ export const Finance: React.FC = () => {
   // Year Filter
   const [selectedYear, setSelectedYear] = useState<number>(2026);
 
-  // Form Bottom Sheet state
+  // Form Bottom Sheet state (Add / Edit)
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // --- Contribution Form states ---
+  // --- Committee Contribution Form states ---
   const [cMemberId, setCMemberId] = useState('');
-  const [cAmount, setCAmount] = useState('');
+  const [cGivenAmount, setCGivenAmount] = useState('');
+  const [cPendingAmount, setCPendingAmount] = useState('0');
   const [cDate, setCDate] = useState(new Date().toISOString().split('T')[0]);
   const [cMethod, setCMethod] = useState('UPI');
   const [cTxnId, setCTxnId] = useState('');
@@ -137,10 +139,13 @@ export const Finance: React.FC = () => {
     fetchMeta();
   }, [token, activeTab]);
 
+  // Open Sheet for CREATE
   const openAddSheet = () => {
+    setEditingId(null);
     setFormError('');
     setCMemberId('');
-    setCAmount('');
+    setCGivenAmount('');
+    setCPendingAmount('0');
     setCTxnId('');
     setCNotes('');
     setSSponsorName('');
@@ -156,6 +161,63 @@ export const Finance: React.FC = () => {
     setIsSheetOpen(true);
   };
 
+  // Open Sheet for EDIT Committee Contribution
+  const openEditCommittee = (item: Contribution) => {
+    setEditingId(item.id);
+    setFormError('');
+    setCMemberId(item.member_id ? String(item.member_id) : '');
+    setCGivenAmount(String(item.amount));
+    
+    // Parse pending amount from notes if present
+    let pending = '0';
+    let rawNotes = item.notes || '';
+    if (rawNotes.includes('[Pending:')) {
+      const match = rawNotes.match(/\[Pending:\s*(\d+)\]/i);
+      if (match) pending = match[1];
+      rawNotes = rawNotes.replace(/\[Pending:\s*\d+\]/gi, '').trim();
+    }
+    setCPendingAmount(pending);
+    setCDate(item.date);
+    setCMethod(item.payment_method);
+    setCTxnId(item.transaction_id || '');
+    setCNotes(rawNotes);
+    setIsSheetOpen(true);
+  };
+
+  // Open Sheet for EDIT Item Sponsor
+  const openEditSponsorship = (item: Sponsorship) => {
+    setEditingId(item.id);
+    setFormError('');
+    const parsed = parseSponsorDetails(item);
+    setSSponsorName(parsed.sponsorName);
+    setSSponsorPhone(parsed.sponsorPhone);
+    setSItemName(parsed.itemName);
+    setSAmount(Number(item.amount) > 0 ? String(item.amount) : '');
+    setSDate(item.date);
+    setSMethod(item.payment_method);
+    setSTxnId(item.transaction_id || '');
+    setSNotes(parsed.extraNotes);
+    setIsSheetOpen(true);
+  };
+
+  // Helper to extract parsed details for Committee Contributions
+  const parseCommitteeDetails = (item: Contribution) => {
+    let pendingAmount = 0;
+    let cleanNotes = item.notes || '';
+
+    if (cleanNotes.includes('[Pending:')) {
+      const match = cleanNotes.match(/\[Pending:\s*(\d+)\]/i);
+      if (match) pendingAmount = Number(match[1]);
+      cleanNotes = cleanNotes.replace(/\[Pending:\s*\d+\]/gi, '').trim();
+    }
+
+    const givenAmount = Number(item.amount) || 0;
+    const totalPledge = givenAmount + pendingAmount;
+
+    return { givenAmount, pendingAmount, totalPledge, cleanNotes };
+  };
+
+  // Helper to extract parsed details for Item Sponsors
   const parseSponsorDetails = (item: Sponsorship) => {
     let sponsorName = item.sponsor?.username || 'Item Sponsor';
     let sponsorPhone = '';
@@ -205,28 +267,40 @@ export const Finance: React.FC = () => {
 
       if (activeTab === 'CONTRIBUTIONS') {
         if (!cMemberId) {
-          setFormError('Please select a valid committee member.');
+          setFormError('Please select a committee member.');
           setSaving(false);
           return;
         }
-        if (!cAmount || isNaN(Number(cAmount)) || Number(cAmount) <= 0) {
-          setFormError('Please enter a valid amount.');
+        if (!cGivenAmount || isNaN(Number(cGivenAmount)) || Number(cGivenAmount) < 0) {
+          setFormError('Please enter a valid given amount.');
           setSaving(false);
           return;
         }
+
+        const pendingNum = Number(cPendingAmount) || 0;
+        const statusVal = pendingNum > 0 ? (Number(cGivenAmount) > 0 ? 'PARTIAL' : 'PENDING') : 'PAID';
+        const formattedNotes = pendingNum > 0 
+          ? `[Pending: ${pendingNum}] ${cNotes.trim()}`.trim() 
+          : cNotes.trim() || null;
 
         const payload = {
           member_id: Number(cMemberId),
-          amount: Number(cAmount),
+          amount: Number(cGivenAmount),
           date: cDate,
           payment_method: cMethod,
           transaction_id: cTxnId.trim() || null,
-          status: 'PAID',
-          notes: cNotes.trim() || null
+          status: statusVal,
+          notes: formattedNotes
         };
 
-        const res = await fetch(`${API_BASE_URL}/api/committee/contributions`, {
-          method: 'POST',
+        const url = editingId 
+          ? `${API_BASE_URL}/api/committee/contributions/${editingId}`
+          : `${API_BASE_URL}/api/committee/contributions`;
+        
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
           headers,
           body: JSON.stringify(payload)
         });
@@ -236,7 +310,7 @@ export const Finance: React.FC = () => {
           fetchFinanceData();
         } else {
           const errData = await res.json();
-          setFormError(errData.detail || 'Failed to save contribution.');
+          setFormError(errData.detail || 'Failed to save committee record.');
         }
       } else if (activeTab === 'SPONSORSHIPS') {
         if (!sSponsorName.trim()) {
@@ -245,7 +319,7 @@ export const Finance: React.FC = () => {
           return;
         }
         if (!sItemName.trim()) {
-          setFormError('Please enter the Sponsored Item/Description (e.g. 25kg Rice, Laddu, Flowers).');
+          setFormError('Please enter the Sponsored Item name.');
           setSaving(false);
           return;
         }
@@ -267,8 +341,14 @@ export const Finance: React.FC = () => {
           notes: JSON.stringify(sponsorDetails)
         };
 
-        const res = await fetch(`${API_BASE_URL}/api/committee/sponsorships`, {
-          method: 'POST',
+        const url = editingId 
+          ? `${API_BASE_URL}/api/committee/sponsorships/${editingId}`
+          : `${API_BASE_URL}/api/committee/sponsorships`;
+        
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
           headers,
           body: JSON.stringify(payload)
         });
@@ -323,7 +403,7 @@ export const Finance: React.FC = () => {
   };
 
   const handleDelete = async (type: 'CONTRIBUTION' | 'SPONSORSHIP' | 'CHANDHA', id: number) => {
-    if (!window.confirm('Are you sure you want to delete this financial record?')) return;
+    if (!window.confirm('Are you sure you want to delete this record?')) return;
 
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
@@ -342,17 +422,18 @@ export const Finance: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-24 relative">
+    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-28 relative">
       {/* Header Bar */}
       <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
         <div>
-          <h2 className="text-base font-bold tracking-tight text-primary-maroon font-serif">Ledger Statement</h2>
-          <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Community Account Registers</span>
+          <h2 className="text-base font-bold tracking-tight text-primary-maroon font-serif">Finance Ledger</h2>
+          <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Account Registers</span>
         </div>
         
         <button 
           onClick={openAddSheet}
           className="w-9 h-9 rounded-full bg-primary-maroon text-white border border-light-gold flex items-center justify-center hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer shadow-md"
+          title="Add New Entry"
         >
           <Plus className="w-5 h-5" />
         </button>
@@ -405,7 +486,8 @@ export const Finance: React.FC = () => {
         </div>
       ) : (
         <div className="px-5 pt-4 flex flex-col gap-3">
-          {/* 1. COMMITTEE CONTRIBUTIONS LIST */}
+          
+          {/* 1. COMMITTEE CONTRIBUTIONS LIST with Given & Pending tracking and CRUD */}
           {activeTab === 'CONTRIBUTIONS' && (
             <>
               {contributions
@@ -416,46 +498,87 @@ export const Finance: React.FC = () => {
                 ) : (
                   contributions
                     .filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
-                    .map(item => (
-                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <h4 className="text-xs font-extrabold text-primary-text truncate">{item.member?.name || 'Unknown'}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium">
-                            {item.member?.member_id && (
-                              <>
-                                <span className="font-mono text-antique-gold">{item.member.member_id}</span>
-                                <span>•</span>
-                              </>
-                            )}
-                            <span>{item.date}</span>
-                            <span>•</span>
-                            <span className="font-mono text-[9px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text">{item.payment_method}</span>
-                          </div>
-                        </div>
+                    .map(item => {
+                      const { givenAmount, pendingAmount, totalPledge, cleanNotes } = parseCommitteeDetails(item);
+                      return (
+                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+                          
+                          {/* Top Row: Member Name, ID, Actions */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-primary-maroon/10 text-primary-maroon flex items-center justify-center font-bold text-xs">
+                                {item.member?.name?.charAt(0) || 'M'}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-black text-primary-text truncate">{item.member?.name || 'Unknown Member'}</h4>
+                                <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium flex-wrap">
+                                  <span className="font-mono text-antique-gold font-bold">{item.member?.member_id}</span>
+                                  <span>•</span>
+                                  <span>Pledge: ₹{totalPledge.toLocaleString()}</span>
+                                  <span>•</span>
+                                  <span>{item.date}</span>
+                                  <span>•</span>
+                                  <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">{item.payment_method}</span>
+                                </div>
+                              </div>
+                            </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
-                            <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${
-                              item.status === 'PAID' ? 'bg-success/10 text-success' : 'bg-antique-gold/10 text-antique-gold'
-                            }`}>
-                              {item.status}
-                            </span>
+                            {/* CRUD Action Buttons */}
+                            <div className="flex items-center gap-1">
+                              <button 
+                                onClick={() => openEditCommittee(item)}
+                                className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
+                                title="Edit Contribution"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete('CONTRIBUTION', item.id)}
+                                className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
+                                title="Delete Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <button 
-                            onClick={() => handleDelete('CONTRIBUTION', item.id)}
-                            className="p-1 rounded-full text-secondary-text hover:text-error active:scale-90 cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+
+                          {/* Middle Row: Given Amount vs Pending Amount Grid */}
+                          <div className="grid grid-cols-2 gap-2 bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/60">
+                            {/* Given / Paid */}
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-success" />
+                                <span>Given Amount</span>
+                              </span>
+                              <span className="text-sm font-black text-success mt-0.5">₹{givenAmount.toLocaleString()}</span>
+                            </div>
+
+                            {/* Pending / Due */}
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-antique-gold" />
+                                <span>Pending Amount</span>
+                              </span>
+                              {pendingAmount > 0 ? (
+                                <span className="text-sm font-black text-error mt-0.5">₹{pendingAmount.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-xs font-bold text-success mt-0.5">✓ Cleared (₹0)</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Notes if any */}
+                          {cleanNotes && (
+                            <p className="text-[10px] text-secondary-text italic line-clamp-1 -mt-1">{cleanNotes}</p>
+                          )}
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                 )}
             </>
           )}
 
-          {/* 2. ITEM SPONSORSHIPS LIST */}
+          {/* 2. ITEM SPONSORSHIPS LIST - Item Name & Sponsor Highlighted, Price Minimized */}
           {activeTab === 'SPONSORSHIPS' && (
             <>
               {sponsorships
@@ -469,55 +592,69 @@ export const Finance: React.FC = () => {
                     .map(item => {
                       const { sponsorName, sponsorPhone, itemName, extraNotes } = parseSponsorDetails(item);
                       return (
-                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                          <div className="flex flex-col gap-1 min-w-0">
-                            {/* Item Name */}
-                            <div className="flex items-center gap-1.5">
-                              <Gift className="w-3.5 h-3.5 text-antique-gold shrink-0" />
-                              <h4 className="text-xs font-black text-primary-maroon truncate">{itemName}</h4>
+                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-2.5 shadow-sm hover:shadow-md transition-shadow">
+                          
+                          {/* Top Header: HIGHLIGHTED ITEM NAME with Gift Icon */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-antique-gold/15 text-antique-gold flex items-center justify-center shrink-0">
+                                <Gift className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="text-sm font-black text-primary-maroon tracking-wide truncate uppercase font-serif">
+                                  {itemName}
+                                </h3>
+                                <span className="text-[9px] font-bold text-secondary-text uppercase">Item Sponsored</span>
+                              </div>
                             </div>
 
-                            {/* Sponsor Details */}
-                            <div className="flex items-center gap-2 text-[10px] text-secondary-text font-semibold flex-wrap">
-                              <span className="text-primary-text font-bold">By: {sponsorName}</span>
+                            {/* Actions (Edit & Delete) */}
+                            <div className="flex items-center gap-1">
+                              <button 
+                                onClick={() => openEditSponsorship(item)}
+                                className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
+                                title="Edit Sponsorship"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete('SPONSORSHIP', item.id)}
+                                className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
+                                title="Delete Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Sponsor Info (Prominent Name) */}
+                          <div className="flex items-center justify-between bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/50 flex-wrap gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Sponsor Name</span>
+                              <span className="text-xs font-black text-primary-text mt-0.5">{sponsorName}</span>
                               {sponsorPhone && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono text-success/90">{sponsorPhone}</span>
-                                </>
+                                <span className="text-[10px] font-mono text-success font-bold mt-0.5">{sponsorPhone}</span>
                               )}
-                              <span>•</span>
-                              <span>{item.date}</span>
-                              <span>•</span>
-                              <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">
+                            </div>
+
+                            {/* Compact Minimized Price & Mode */}
+                            <div className="flex flex-col items-end">
+                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Est. Value</span>
+                              {Number(item.amount) > 0 ? (
+                                <span className="text-xs font-bold text-secondary-text font-mono mt-0.5">₹{Number(item.amount).toLocaleString()}</span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-antique-gold mt-0.5">In-Kind Material</span>
+                              )}
+                              <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-white border border-border-custom text-primary-maroon uppercase mt-1">
                                 {item.payment_method === 'IN_KIND' ? 'In-Kind Item' : item.payment_method}
                               </span>
                             </div>
-
-                            {extraNotes && (
-                              <p className="text-[10px] text-secondary-text italic line-clamp-1 mt-0.5">{extraNotes}</p>
-                            )}
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <div className="flex flex-col items-end gap-1 shrink-0">
-                              {Number(item.amount) > 0 ? (
-                                <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
-                              ) : (
-                                <span className="text-[10px] font-extrabold text-antique-gold">In-Kind</span>
-                              )}
-                              <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase bg-success/10 text-success">
-                                Sponsored
-                              </span>
-                            </div>
-                            <button 
-                              onClick={() => handleDelete('SPONSORSHIP', item.id)}
-                              className="p-1 rounded-full text-secondary-text hover:text-error active:scale-90 cursor-pointer"
-                              title="Delete Sponsorship"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                          {/* Notes / Remarks */}
+                          {extraNotes && (
+                            <p className="text-[10px] text-secondary-text italic line-clamp-1">{extraNotes}</p>
+                          )}
                         </div>
                       );
                     })
@@ -571,60 +708,130 @@ export const Finance: React.FC = () => {
         </div>
       )}
 
-      {/* Unified Add Transaction Sheet */}
+      {/* Unified Add / Edit Transaction Sheet */}
       <BottomSheet 
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
         title={
           activeTab === 'CONTRIBUTIONS' 
-            ? "Report Committee Contribution" 
+            ? (editingId ? "Edit Committee Contribution" : "Record Committee Contribution")
             : activeTab === 'SPONSORSHIPS' 
-            ? "Record Item Sponsorship" 
+            ? (editingId ? "Edit Item Sponsorship" : "Record Item Sponsorship")
             : "Report Public Donation (Chandha)"
         }
       >
         <form onSubmit={handleSaveTransaction} className="flex flex-col gap-4">
           
-          {/* 1. Member selection (Only for Committee Contributions) */}
+          {/* 1. Committee Member Selection with Given & Pending inputs */}
           {activeTab === 'CONTRIBUTIONS' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Select Committee Member</label>
-              <select
-                value={cMemberId}
-                onChange={e => setCMemberId(e.target.value)}
-                className="w-full bg-white border border-border-custom rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
-              >
-                <option value="">-- Choose Member --</option>
-                {members.map(m => (
-                  <option key={m.id} value={m.id}>{m.name} ({m.member_id})</option>
-                ))}
-              </select>
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Select Committee Member</label>
+                <select
+                  value={cMemberId}
+                  onChange={e => setCMemberId(e.target.value)}
+                  className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+                >
+                  <option value="">-- Choose Member --</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.member_id})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Given & Pending Amount Inputs */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-success uppercase tracking-widest flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Given / Paid (₹)</span>
+                  </label>
+                  <input 
+                    type="number"
+                    placeholder="e.g. 5000"
+                    value={cGivenAmount}
+                    onChange={e => setCGivenAmount(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-success text-success font-black placeholder:text-secondary-text/50 font-mono"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-antique-gold uppercase tracking-widest flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>Pending / Due (₹)</span>
+                  </label>
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={cPendingAmount}
+                    onChange={e => setCPendingAmount(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-antique-gold text-error font-black placeholder:text-secondary-text/50 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Mode & Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Payment Mode</label>
+                  <select
+                    value={cMethod}
+                    onChange={e => setCMethod(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+                  >
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="CASH">Cash</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Date</label>
+                  <input 
+                    type="date"
+                    value={cDate}
+                    onChange={e => setCDate(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Remarks / Notes (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Paid 1st installment, balance on Chavithi"
+                  value={cNotes}
+                  onChange={e => setCNotes(e.target.value)}
+                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                />
+              </div>
+            </>
           )}
 
           {/* 2. Item Sponsorship Detailed Inputs */}
           {activeTab === 'SPONSORSHIPS' && (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsor / Person Name</label>
+                <label className="text-[10px] font-bold text-primary-maroon uppercase tracking-widest">Sponsored Item Name / Description</label>
                 <input 
                   type="text"
-                  placeholder="e.g. T.V.S Murthy, Ramesh, Satyanarayana"
-                  value={sSponsorName}
-                  onChange={e => setSSponsorName(e.target.value)}
-                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                  placeholder="e.g. 25kg Rice Bags, Laddu Prasadam, Flower Garlands"
+                  value={sItemName}
+                  onChange={e => setSItemName(e.target.value)}
+                  className="w-full bg-white border border-primary-maroon/30 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-maroon font-bold placeholder:text-secondary-text/50"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsored Item / Details</label>
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsor Name</label>
                   <input 
                     type="text"
-                    placeholder="e.g. 25kg Rice, Laddu Prasadam, Flowers"
-                    value={sItemName}
-                    onChange={e => setSItemName(e.target.value)}
-                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                    placeholder="e.g. T.V.S Murthy, Ramesh"
+                    value={sSponsorName}
+                    onChange={e => setSSponsorName(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
                   />
                 </div>
 
@@ -635,7 +842,56 @@ export const Finance: React.FC = () => {
                     placeholder="e.g. 9876543210"
                     value={sSponsorPhone}
                     onChange={e => setSSponsorPhone(e.target.value)}
-                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Estimated Value / ₹ (Optional)</label>
+                  <input 
+                    type="number"
+                    placeholder="₹ 0 or Value"
+                    value={sAmount}
+                    onChange={e => setSAmount(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50 font-mono"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Contribution Mode</label>
+                  <select
+                    value={sMethod}
+                    onChange={e => setSMethod(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+                  >
+                    <option value="IN_KIND">In-Kind (Item / Material)</option>
+                    <option value="CASH">Cash</option>
+                    <option value="UPI">UPI / Online</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Date</label>
+                  <input 
+                    type="date"
+                    value={sDate}
+                    onChange={e => setSDate(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Delivery / Remarks</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Delivered on Day 1"
+                    value={sNotes}
+                    onChange={e => setSNotes(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
                   />
                 </div>
               </div>
@@ -665,90 +921,44 @@ export const Finance: React.FC = () => {
                   className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
                 />
               </div>
-            </>
-          )}
 
-          {/* 4. Amount / Value */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">
-                {activeTab === 'SPONSORSHIPS' ? 'Estimated Value / ₹ (Optional)' : 'Amount (₹)'}
-              </label>
-              <input 
-                type="number"
-                placeholder={activeTab === 'SPONSORSHIPS' ? "₹ 0 or Value" : "e.g. 5000"}
-                value={activeTab === 'CONTRIBUTIONS' ? cAmount : activeTab === 'SPONSORSHIPS' ? sAmount : chAmount}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (activeTab === 'CONTRIBUTIONS') setCAmount(val);
-                  else if (activeTab === 'SPONSORSHIPS') setSAmount(val);
-                  else setChAmount(val);
-                }}
-                className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-bold placeholder:text-secondary-text/50 font-mono"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Amount (₹)</label>
+                  <input 
+                    type="number"
+                    placeholder="e.g. 5000"
+                    value={chAmount}
+                    onChange={e => setChAmount(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-bold placeholder:text-secondary-text/50 font-mono"
+                  />
+                </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Contribution Mode</label>
-              <select
-                value={activeTab === 'CONTRIBUTIONS' ? cMethod : activeTab === 'SPONSORSHIPS' ? sMethod : chMethod}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (activeTab === 'CONTRIBUTIONS') setCMethod(val);
-                  else if (activeTab === 'SPONSORSHIPS') setSMethod(val);
-                  else setChMethod(val);
-                }}
-                className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
-              >
-                {activeTab === 'SPONSORSHIPS' ? (
-                  <>
-                    <option value="IN_KIND">In-Kind (Item Donation)</option>
-                    <option value="CASH">Cash</option>
-                    <option value="UPI">UPI / Online</option>
-                  </>
-                ) : (
-                  <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Payment Mode</label>
+                  <select
+                    value={chMethod}
+                    onChange={e => setChMethod(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+                  >
                     <option value="UPI">UPI / QR Code</option>
                     <option value="CASH">Cash</option>
                     <option value="BANK_TRANSFER">Bank Transfer</option>
-                  </>
-                )}
-              </select>
-            </div>
-          </div>
+                  </select>
+                </div>
+              </div>
 
-          {/* 5. Date */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Date</label>
-            <input 
-              type="date"
-              value={activeTab === 'CONTRIBUTIONS' ? cDate : activeTab === 'SPONSORSHIPS' ? sDate : chDate}
-              onChange={e => {
-                const val = e.target.value;
-                if (activeTab === 'CONTRIBUTIONS') setCDate(val);
-                else if (activeTab === 'SPONSORSHIPS') setSDate(val);
-                else setChDate(val);
-              }}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
-            />
-          </div>
-
-          {/* 6. Notes */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Additional Notes / Remarks (Optional)</label>
-            <input 
-              type="text"
-              placeholder="e.g. Delivered directly to Mandapam"
-              value={activeTab === 'CONTRIBUTIONS' ? cNotes : activeTab === 'SPONSORSHIPS' ? sNotes : chNotes}
-              onChange={e => {
-                const val = e.target.value;
-                if (activeTab === 'CONTRIBUTIONS') setCNotes(val);
-                else if (activeTab === 'SPONSORSHIPS') setSNotes(val);
-                else setChNotes(val);
-              }}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
-            />
-          </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Date</label>
+                <input 
+                  type="date"
+                  value={chDate}
+                  onChange={e => setChDate(e.target.value)}
+                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                />
+              </div>
+            </>
+          )}
 
           {formError && (
             <div className="text-xs text-error font-bold p-3 bg-error/10 border border-error/20 rounded-xl">
@@ -764,7 +974,7 @@ export const Finance: React.FC = () => {
             {saving ? (
               <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
             ) : (
-              <span>Save Record</span>
+              <span>{editingId ? "Update Record" : "Save Record"}</span>
             )}
           </button>
         </form>
