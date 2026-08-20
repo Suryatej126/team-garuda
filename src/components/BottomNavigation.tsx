@@ -9,7 +9,7 @@ import {
   LayoutDashboard, 
   Users, 
   Landmark, 
-  Film, 
+  Receipt, 
   Menu 
 } from 'lucide-react';
 
@@ -45,7 +45,7 @@ export const BottomNavigation: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.path)}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                 active ? 'text-primary-maroon scale-105' : 'text-secondary-text hover:text-primary-text'
               }`}
             >
@@ -60,17 +60,17 @@ export const BottomNavigation: React.FC = () => {
       </div>
     );
   } else {
-    // Committee / Admin tabs
+    // Committee / Admin tabs — Replaced Media with Expenses
     const tabs = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { id: 'members', label: 'Members', icon: Users, path: '/members' },
       { id: 'finance', label: 'Finance', icon: Landmark, path: '/finance' },
-      { id: 'media', label: 'Media', icon: Film, path: '/media-management' },
+      { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
       { id: 'more', label: 'More', icon: Menu, path: '/more' },
     ];
 
     return (
-      <div className="h-16 bg-white border-t border-border-custom flex items-center justify-around px-2 pb-safe select-none shrink-0 z-40">
+      <div className="h-16 bg-white border-t border-border-custom flex items-center justify-around px-2 pb-safe select-none shrink-0 z-40 shadow-xs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = isActive(tab.path) || (tab.id === 'more' && ['/settings', '/events-management', '/add-event', '/add-member'].some(p => location.pathname.startsWith(p)));
@@ -78,7 +78,7 @@ export const BottomNavigation: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.path)}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                 active ? 'text-primary-maroon scale-105' : 'text-secondary-text hover:text-primary-text'
               }`}
             >

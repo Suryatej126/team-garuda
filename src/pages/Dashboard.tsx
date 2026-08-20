@@ -11,7 +11,8 @@ import {
   Users, 
   TrendingUp, 
   ChevronRight,
-  HandCoins
+  HandCoins,
+  Receipt
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
@@ -199,7 +200,7 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-10 relative">
+    <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-28 relative">
       {/* Header Bar */}
       <div className="h-20 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/90 backdrop-blur sticky top-0 z-30">
         <div className="flex items-center gap-3">
@@ -267,13 +268,13 @@ export const Dashboard: React.FC = () => {
             </button>
             
             <button 
-              onClick={() => navigate('/more?addEvent=true')}
+              onClick={() => navigate('/expenses')}
               className="flex flex-col items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-full bg-white border border-border-custom text-primary-maroon flex items-center justify-center shadow-sm">
-                <Calendar className="w-4.5 h-4.5" />
+              <div className="w-12 h-12 rounded-full bg-white border border-border-custom text-error flex items-center justify-center shadow-sm">
+                <Receipt className="w-4.5 h-4.5" />
               </div>
-              <span className="text-[10px] text-secondary-text font-bold text-center leading-tight">New Event</span>
+              <span className="text-[10px] text-secondary-text font-bold text-center leading-tight">Add Expense</span>
             </button>
             
             <button 

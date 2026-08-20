@@ -16,22 +16,28 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
 import { Finance } from './pages/Finance';
-import { MediaManagement } from './pages/MediaManagement';
+import { Expenses } from './pages/Expenses';
 import { AdminSettings } from './pages/AdminSettings';
 
 const ScreenTransitionContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const prevPath = useRef(location.pathname);
+  const transitionCount = useRef(0);
 
   useEffect(() => {
     if (prevPath.current !== location.pathname) {
       prevPath.current = location.pathname;
-      setIsTransitioning(true);
-      const timer = setTimeout(() => {
-        setIsTransitioning(false);
-      }, 1100); // 1.1s smooth screen transition loader
-      return () => clearTimeout(timer);
+      transitionCount.current += 1;
+      
+      // Only show loader 1 in every 5 screen switches (1:5 ratio) for snappy navigation
+      if (transitionCount.current % 5 === 1) {
+        setIsTransitioning(true);
+        const timer = setTimeout(() => {
+          setIsTransitioning(false);
+        }, 900); // 0.9s clean transition
+        return () => clearTimeout(timer);
+      }
     }
   }, [location.pathname]);
 
@@ -99,7 +105,8 @@ const AppContent: React.FC = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/members" element={<Members />} />
                 <Route path="/finance" element={<Finance />} />
-                <Route path="/media-management" element={<MediaManagement />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/media-management" element={<Navigate to="/expenses" replace />} />
                 <Route path="/more" element={<AdminSettings />} />
                 {/* Fallback to Dashboard */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
