@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Gift } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface Member {
@@ -74,10 +74,13 @@ export const Finance: React.FC = () => {
   const [cTxnId, setCTxnId] = useState('');
   const [cNotes, setCNotes] = useState('');
 
-  // --- Sponsorship Form states ---
+  // --- Item Sponsorship Form states ---
+  const [sSponsorName, setSSponsorName] = useState('');
+  const [sSponsorPhone, setSSponsorPhone] = useState('');
+  const [sItemName, setSItemName] = useState('');
   const [sAmount, setSAmount] = useState('');
   const [sDate, setSDate] = useState(new Date().toISOString().split('T')[0]);
-  const [sMethod, setSMethod] = useState('UPI');
+  const [sMethod, setSMethod] = useState('IN_KIND');
   const [sTxnId, setSTxnId] = useState('');
   const [sNotes, setSNotes] = useState('');
 
@@ -140,6 +143,9 @@ export const Finance: React.FC = () => {
     setCAmount('');
     setCTxnId('');
     setCNotes('');
+    setSSponsorName('');
+    setSSponsorPhone('');
+    setSItemName('');
     setSAmount('');
     setSTxnId('');
     setSNotes('');
@@ -148,6 +154,42 @@ export const Finance: React.FC = () => {
     setChAmount('');
     setChNotes('');
     setIsSheetOpen(true);
+  };
+
+  const parseSponsorDetails = (item: Sponsorship) => {
+    let sponsorName = item.sponsor?.username || 'Item Sponsor';
+    let sponsorPhone = '';
+    let itemName = 'Item Sponsorship';
+    let extraNotes = item.notes || '';
+
+    if (item.notes) {
+      try {
+        if (item.notes.startsWith('{')) {
+          const parsed = JSON.parse(item.notes);
+          sponsorName = parsed.sponsor_name || sponsorName;
+          sponsorPhone = parsed.sponsor_phone || '';
+          itemName = parsed.item_name || itemName;
+          extraNotes = parsed.notes || '';
+        } else {
+          const itemMatch = item.notes.match(/\[Item:\s*([^\]]+)\]/i);
+          const nameMatch = item.notes.match(/\[Sponsor:\s*([^\]]+)\]/i);
+          const phoneMatch = item.notes.match(/\[Phone:\s*([^\]]+)\]/i);
+          
+          if (itemMatch) itemName = itemMatch[1].trim();
+          if (nameMatch) sponsorName = nameMatch[1].trim();
+          if (phoneMatch) sponsorPhone = phoneMatch[1].trim();
+          extraNotes = item.notes
+            .replace(/\[Item:[^\]]+\]/gi, '')
+            .replace(/\[Sponsor:[^\]]+\]/gi, '')
+            .replace(/\[Phone:[^\]]+\]/gi, '')
+            .trim();
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    return { sponsorName, sponsorPhone, itemName, extraNotes };
   };
 
   const handleSaveTransaction = async (e: React.FormEvent) => {
@@ -197,20 +239,32 @@ export const Finance: React.FC = () => {
           setFormError(errData.detail || 'Failed to save contribution.');
         }
       } else if (activeTab === 'SPONSORSHIPS') {
-        if (!sAmount || isNaN(Number(sAmount)) || Number(sAmount) <= 0) {
-          setFormError('Please enter a valid sponsorship amount.');
+        if (!sSponsorName.trim()) {
+          setFormError('Please enter the Sponsor Name.');
+          setSaving(false);
+          return;
+        }
+        if (!sItemName.trim()) {
+          setFormError('Please enter the Sponsored Item/Description (e.g. 25kg Rice, Laddu, Flowers).');
           setSaving(false);
           return;
         }
 
+        const sponsorDetails = {
+          sponsor_name: sSponsorName.trim(),
+          sponsor_phone: sSponsorPhone.trim() || null,
+          item_name: sItemName.trim(),
+          notes: sNotes.trim() || null
+        };
+
         const payload = {
           user_id: user?.id,
-          amount: Number(sAmount),
+          amount: sAmount && !isNaN(Number(sAmount)) ? Number(sAmount) : 0,
           date: sDate,
           payment_method: sMethod,
           transaction_id: sTxnId.trim() || null,
           status: 'PAID',
-          notes: sNotes.trim() || null
+          notes: JSON.stringify(sponsorDetails)
         };
 
         const res = await fetch(`${API_BASE_URL}/api/committee/sponsorships`, {
@@ -224,7 +278,7 @@ export const Finance: React.FC = () => {
           fetchFinanceData();
         } else {
           const errData = await res.json();
-          setFormError(errData.detail || 'Failed to save sponsorship.');
+          setFormError(errData.detail || 'Failed to save item sponsorship.');
         }
       } else if (activeTab === 'CHANDHALU') {
         if (!chName.trim()) {
@@ -412,38 +466,61 @@ export const Finance: React.FC = () => {
                 ) : (
                   sponsorships
                     .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
-                    .map(item => (
-                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <h4 className="text-xs font-extrabold text-primary-text truncate">Item Sponsor: {item.sponsor?.username || 'Sponsor'}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium">
-                            <span>{item.date}</span>
-                            <span>•</span>
-                            <span className="font-mono text-[9px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text">{item.payment_method}</span>
-                          </div>
-                          {item.notes && (
-                            <p className="text-[10px] text-secondary-text italic line-clamp-1 mt-0.5">{item.notes}</p>
-                          )}
-                        </div>
+                    .map(item => {
+                      const { sponsorName, sponsorPhone, itemName, extraNotes } = parseSponsorDetails(item);
+                      return (
+                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            {/* Item Name */}
+                            <div className="flex items-center gap-1.5">
+                              <Gift className="w-3.5 h-3.5 text-antique-gold shrink-0" />
+                              <h4 className="text-xs font-black text-primary-maroon truncate">{itemName}</h4>
+                            </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
-                            <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${
-                              item.status === 'PAID' ? 'bg-success/10 text-success' : 'bg-antique-gold/10 text-antique-gold'
-                            }`}>
-                              {item.status}
-                            </span>
+                            {/* Sponsor Details */}
+                            <div className="flex items-center gap-2 text-[10px] text-secondary-text font-semibold flex-wrap">
+                              <span className="text-primary-text font-bold">By: {sponsorName}</span>
+                              {sponsorPhone && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-mono text-success/90">{sponsorPhone}</span>
+                                </>
+                              )}
+                              <span>•</span>
+                              <span>{item.date}</span>
+                              <span>•</span>
+                              <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">
+                                {item.payment_method === 'IN_KIND' ? 'In-Kind Item' : item.payment_method}
+                              </span>
+                            </div>
+
+                            {extraNotes && (
+                              <p className="text-[10px] text-secondary-text italic line-clamp-1 mt-0.5">{extraNotes}</p>
+                            )}
                           </div>
-                          <button 
-                            onClick={() => handleDelete('SPONSORSHIP', item.id)}
-                            className="p-1 rounded-full text-secondary-text hover:text-error active:scale-90 cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              {Number(item.amount) > 0 ? (
+                                <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
+                              ) : (
+                                <span className="text-[10px] font-extrabold text-antique-gold">In-Kind</span>
+                              )}
+                              <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase bg-success/10 text-success">
+                                Sponsored
+                              </span>
+                            </div>
+                            <button 
+                              onClick={() => handleDelete('SPONSORSHIP', item.id)}
+                              className="p-1 rounded-full text-secondary-text hover:text-error active:scale-90 cursor-pointer"
+                              title="Delete Sponsorship"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                 )}
             </>
           )}
@@ -502,7 +579,7 @@ export const Finance: React.FC = () => {
           activeTab === 'CONTRIBUTIONS' 
             ? "Report Committee Contribution" 
             : activeTab === 'SPONSORSHIPS' 
-            ? "Report Item Sponsorship" 
+            ? "Record Item Sponsorship" 
             : "Report Public Donation (Chandha)"
         }
       >
@@ -525,7 +602,47 @@ export const Finance: React.FC = () => {
             </div>
           )}
 
-          {/* 2. Donor Name & Phone (Only for Public Donations / Chandhalu) */}
+          {/* 2. Item Sponsorship Detailed Inputs */}
+          {activeTab === 'SPONSORSHIPS' && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsor / Person Name</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. T.V.S Murthy, Ramesh, Satyanarayana"
+                  value={sSponsorName}
+                  onChange={e => setSSponsorName(e.target.value)}
+                  className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsored Item / Details</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. 25kg Rice, Laddu Prasadam, Flowers"
+                    value={sItemName}
+                    onChange={e => setSItemName(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsor Phone (Optional)</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. 9876543210"
+                    value={sSponsorPhone}
+                    onChange={e => setSSponsorPhone(e.target.value)}
+                    className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 3. Donor Name & Phone (Only for Public Donations / Chandhalu) */}
           {activeTab === 'CHANDHALU' && (
             <>
               <div className="flex flex-col gap-2">
@@ -551,27 +668,57 @@ export const Finance: React.FC = () => {
             </>
           )}
 
-          {/* 3. Amount */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">
-              {activeTab === 'SPONSORSHIPS' ? 'Item / Sponsorship Value (₹)' : 'Amount (₹)'}
-            </label>
-            <input 
-              type="number"
-              placeholder="e.g. 5000"
-              value={activeTab === 'CONTRIBUTIONS' ? cAmount : activeTab === 'SPONSORSHIPS' ? sAmount : chAmount}
-              onChange={e => {
-                const val = e.target.value;
-                if (activeTab === 'CONTRIBUTIONS') setCAmount(val);
-                else if (activeTab === 'SPONSORSHIPS') setSAmount(val);
-                else setChAmount(val);
-              }}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-bold placeholder:text-secondary-text/50 font-mono"
-            />
+          {/* 4. Amount / Value */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">
+                {activeTab === 'SPONSORSHIPS' ? 'Estimated Value / ₹ (Optional)' : 'Amount (₹)'}
+              </label>
+              <input 
+                type="number"
+                placeholder={activeTab === 'SPONSORSHIPS' ? "₹ 0 or Value" : "e.g. 5000"}
+                value={activeTab === 'CONTRIBUTIONS' ? cAmount : activeTab === 'SPONSORSHIPS' ? sAmount : chAmount}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (activeTab === 'CONTRIBUTIONS') setCAmount(val);
+                  else if (activeTab === 'SPONSORSHIPS') setSAmount(val);
+                  else setChAmount(val);
+                }}
+                className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-bold placeholder:text-secondary-text/50 font-mono"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Contribution Mode</label>
+              <select
+                value={activeTab === 'CONTRIBUTIONS' ? cMethod : activeTab === 'SPONSORSHIPS' ? sMethod : chMethod}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (activeTab === 'CONTRIBUTIONS') setCMethod(val);
+                  else if (activeTab === 'SPONSORSHIPS') setSMethod(val);
+                  else setChMethod(val);
+                }}
+                className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+              >
+                {activeTab === 'SPONSORSHIPS' ? (
+                  <>
+                    <option value="IN_KIND">In-Kind (Item Donation)</option>
+                    <option value="CASH">Cash</option>
+                    <option value="UPI">UPI / Online</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="CASH">Cash</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                  </>
+                )}
+              </select>
+            </div>
           </div>
 
-          {/* 4. Date */}
-          <div className="flex flex-col gap-2">
+          {/* 5. Date */}
+          <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Date</label>
             <input 
               type="date"
@@ -582,43 +729,26 @@ export const Finance: React.FC = () => {
                 else if (activeTab === 'SPONSORSHIPS') setSDate(val);
                 else setChDate(val);
               }}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+              className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
             />
           </div>
 
-          {/* 5. Method */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Payment Method</label>
-            <select
-              value={activeTab === 'CONTRIBUTIONS' ? cMethod : activeTab === 'SPONSORSHIPS' ? sMethod : chMethod}
+          {/* 6. Notes */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Additional Notes / Remarks (Optional)</label>
+            <input 
+              type="text"
+              placeholder="e.g. Delivered directly to Mandapam"
+              value={activeTab === 'CONTRIBUTIONS' ? cNotes : activeTab === 'SPONSORSHIPS' ? sNotes : chNotes}
               onChange={e => {
                 const val = e.target.value;
-                if (activeTab === 'CONTRIBUTIONS') setCMethod(val);
-                else if (activeTab === 'SPONSORSHIPS') setSMethod(val);
-                else setChMethod(val);
+                if (activeTab === 'CONTRIBUTIONS') setCNotes(val);
+                else if (activeTab === 'SPONSORSHIPS') setSNotes(val);
+                else setChNotes(val);
               }}
-              className="w-full bg-white border border-border-custom rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
-            >
-              <option value="UPI">UPI / QR Code</option>
-              <option value="CASH">Cash</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
-              {activeTab === 'SPONSORSHIPS' && <option value="IN_KIND">In-Kind / Item Donation</option>}
-            </select>
+              className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+            />
           </div>
-
-          {/* 6. Item / Notes for Sponsorship */}
-          {activeTab === 'SPONSORSHIPS' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Sponsored Item / Details</label>
-              <input 
-                type="text"
-                placeholder="e.g. 25kg Rice, Idol Flowers, Sound Stage, Laddu"
-                value={sNotes}
-                onChange={e => setSNotes(e.target.value)}
-                className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
-              />
-            </div>
-          )}
 
           {formError && (
             <div className="text-xs text-error font-bold p-3 bg-error/10 border border-error/20 rounded-xl">
@@ -629,7 +759,7 @@ export const Finance: React.FC = () => {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-3.5 rounded-xl mt-2 active:scale-95 transition-all shadow-md flex justify-center items-center cursor-pointer"
+            className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-3.5 rounded-xl mt-1 active:scale-95 transition-all shadow-md flex justify-center items-center cursor-pointer"
           >
             {saving ? (
               <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
