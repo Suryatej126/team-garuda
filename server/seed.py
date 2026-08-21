@@ -41,6 +41,11 @@ def seed_db():
         for u in [admin, aditya, narendra, hemaraj, bhimeesh, ganesh, prakash]:
             db.refresh(u)
 
+        # User aliases to fix undefined variable references
+        suriya = hemaraj
+        teja = aditya
+        vinay = narendra
+
         print("Seeded 1 Admin and 6 Committee users.")
 
         # 2. Seed Members (Committee & Core Members, all PINs are "123456")
@@ -49,13 +54,20 @@ def seed_db():
             {"member_id": "TG001", "name": "Aditya", "phone": "8919823457"},
             {"member_id": "TG002", "name": "Narendra", "phone": "9666865197"},
             {"member_id": "TG003", "name": "Hema Raj", "phone": "8639273539"},
-            {"member_id": "TG004", "name": "Bhimeesh", "phone": "9398555549"},
-            {"member_id": "TG005", "name": "Ganesh", "phone": "6304934345"},
+            {"member_id": "TG004", "name": "Bheemesh", "phone": "9398555549"},
+            {"member_id": "TG005", "name": "Ram Ganesh", "phone": "6304934345"},
             {"member_id": "TG006", "name": "Prakash", "phone": "9440540886"},
             {"member_id": "TG007", "name": "Sridhar Reddy", "phone": "+91 95544 33221"},
             {"member_id": "TG008", "name": "Anusha Rao", "phone": "+91 84433 22110"},
             {"member_id": "TG009", "name": "Ramesh Kumar", "phone": "+91 73322 11009"},
             {"member_id": "TG010", "name": "Venkatesh Naidu", "phone": "+91 92211 00998"},
+            {"member_id": "TG011", "name": "Loku Tn", "phone": "9000100011"},
+            {"member_id": "TG012", "name": "Surya", "phone": "9000100012"},
+            {"member_id": "TG013", "name": "Gottam", "phone": "9000100013"},
+            {"member_id": "TG014", "name": "Aditya Annaya", "phone": "9000100014"},
+            {"member_id": "TG015", "name": "Lokesh Annaya", "phone": "9000100015"},
+            {"member_id": "TG016", "name": "Kalyan", "phone": "9000100016"},
+            {"member_id": "TG017", "name": "Sandeep", "phone": "9000100017"},
         ]
 
         members = []
@@ -128,56 +140,62 @@ def seed_db():
 
         print("Seeded 3 events.")
 
-        # 4. Seed Member Contributions (Total paid ₹10,000, pending ₹1,000)
-        c1 = Contribution(
-            contributor_id=contributors[0].id, # Surya Teja
-            member_id=members[0].id,
-            amount=2000.00,
-            date=datetime.date(2026, 8, 15),
-            payment_method="UPI",
-            transaction_id="TXN8892019",
-            event_id=ganesh.id,
-            status="PAID",
-            notes="Annual contribution for Ganesh Chaturthi."
-        )
-        c2 = Contribution(
-            contributor_id=contributors[1].id, # Vinayaka Sharma
-            member_id=members[1].id,
-            amount=3000.00,
-            date=datetime.date(2026, 8, 16),
-            payment_method="CASH",
-            transaction_id=None,
-            event_id=ganesh.id,
-            status="PAID",
-            notes="Paid in cash to Suriya."
-        )
-        c3 = Contribution(
-            contributor_id=contributors[2].id, # Karthik Raja
-            member_id=members[2].id,
-            amount=5000.00,
-            date=datetime.date(2026, 8, 17),
-            payment_method="BANK_TRANSFER",
-            transaction_id="IMPS9988220",
-            event_id=ganesh.id,
-            status="PAID",
-            notes="Direct bank transfer to Garuda account."
-        )
-        c4 = Contribution(
-            contributor_id=contributors[0].id, # Surya Teja
-            member_id=members[0].id,
-            amount=1000.00,
+        # 4. Seed Member Contributions for Vinayaka Chavithi 2026 (Actual Committee list)
+        actual_contributions = [
+            {"name": "Loku Tn", "paid": 350.00, "balance": 550.00, "method": "UPI"},
+            {"name": "Hema Raj", "paid": 1000.00, "balance": 0.00, "method": "BANK_TRANSFER"},
+            {"name": "Surya", "paid": 100.00, "balance": 900.00, "method": "UPI"},
+            {"name": "Gottam", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
+            {"name": "Ram Ganesh", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
+            {"name": "Aditya", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
+            {"name": "Bheemesh", "paid": 200.00, "balance": 800.00, "method": "UPI"},
+            {"name": "Aditya Annaya", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
+            {"name": "Lokesh Annaya", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
+            {"name": "Prakash", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
+            {"name": "Kalyan", "paid": 300.00, "balance": 700.00, "method": "UPI"},
+            {"name": "Narendra", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
+            {"name": "Sandeep", "paid": 400.00, "balance": 500.00, "method": "UPI"},
+        ]
+
+        for item in actual_contributions:
+            m_rec = next((m for m in members if m.name == item["name"]), None)
+            c_rec = next((c for c in contributors if c.name == item["name"]), None)
+            
+            if m_rec and c_rec:
+                status_val = "PAID" if item["balance"] == 0 else ("PARTIAL" if item["paid"] > 0 else "PENDING")
+                notes_val = f"[Pending: {int(item['balance'])}]" if item["balance"] > 0 else None
+                
+                contrib = Contribution(
+                    contributor_id=c_rec.id,
+                    member_id=m_rec.id,
+                    amount=item["paid"],
+                    date=datetime.date(2026, 8, 18),
+                    payment_method=item["method"],
+                    transaction_id=None,
+                    event_id=ganesh.id,
+                    status=status_val,
+                    notes=notes_val
+                )
+                db.add(contrib)
+        
+        # Seed one pending contribution for Dussera to ensure future dashboard variety
+        m_aditya = next(m for m in members if m.member_id == "TG001")
+        c_aditya = next(c for c in contributors if c.name == m_aditya.name)
+        c_dussera = Contribution(
+            contributor_id=c_aditya.id,
+            member_id=m_aditya.id,
+            amount=0.00,
             date=datetime.date(2026, 8, 18),
             payment_method="UPI",
             transaction_id=None,
             event_id=dussera.id,
             status="PENDING",
-            notes="Pledged for Dussera festival."
+            notes="[Pending: 1000] Pledged for Dussera festival."
         )
-
-        db.add_all([c1, c2, c3, c4])
+        db.add(c_dussera)
         db.commit()
 
-        print("Seeded member contributions: Rs. 10,000 paid, Rs. 1,000 pending.")
+        print("Seeded member contributions matching the actual committee list.")
 
         # 5. Seed Sponsorships (Committee Member A = ₹10,000 paid)
         s1 = Sponsorship(

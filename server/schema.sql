@@ -48,7 +48,7 @@ CREATE TABLE events (
 CREATE TABLE contributions (
     id SERIAL PRIMARY KEY,
     member_id INT REFERENCES members(id) ON DELETE CASCADE,
-    amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+    amount NUMERIC(12, 2) NOT NULL CHECK (amount >= 0),
     date DATE NOT NULL,
     payment_method VARCHAR(30) NOT NULL CHECK (payment_method IN ('UPI', 'CASH', 'BANK_TRANSFER', 'OTHER')),
     transaction_id VARCHAR(100),

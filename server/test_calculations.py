@@ -12,7 +12,7 @@ def run_tests():
         total_contributions = db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID").scalar() or 0.0
         total_contributions = float(total_contributions)
         print(f"Calculated Total Paid Member Contributions: Rs. {total_contributions:,.2f}")
-        assert total_contributions == 10000.00, f"Expected 10,000.00, got {total_contributions}"
+        assert total_contributions == 5000.00, f"Expected 5,000.00, got {total_contributions}"
 
         # 2. Total Paid Sponsorships
         total_sponsorships = db.query(func.sum(Sponsorship.amount)).filter(Sponsorship.status == "PAID").scalar() or 0.0
@@ -27,7 +27,7 @@ def run_tests():
         
         total_funds = total_contributions + total_sponsorships + total_chandhalu
         print(f"Calculated Total Funds (Contributions + Sponsorships + Chandhalu): Rs. {total_funds:,.2f}")
-        assert total_funds == 20000.00, f"Expected 20,000.00, got {total_funds}"
+        assert total_funds == 15000.00, f"Expected 15,000.00, got {total_funds}"
 
         # 4. Total Expenses
         total_expenses = db.query(func.sum(Expense.amount)).scalar() or 0.0
@@ -38,7 +38,7 @@ def run_tests():
         # 5. Current Balance (Total Funds - Total Expenses)
         current_balance = total_funds - total_expenses
         print(f"Calculated Current Balance: Rs. {current_balance:,.2f}")
-        assert current_balance == 12000.00, f"Expected 12,000.00, got {current_balance}"
+        assert current_balance == 7000.00, f"Expected 7,000.00, got {current_balance}"
 
         print("\nSUCCESS: All financial calculations are mathematically accurate!")
         sys.exit(0)
