@@ -7,11 +7,6 @@ import { Splash } from './pages/Splash';
 import { GaneshaLoader } from './components/GaneshaLoader';
 
 // Pages imports
-import { Home } from './pages/Home';
-import { Events } from './pages/Events';
-import { EventDetails } from './pages/EventDetails';
-import { Gallery } from './pages/Gallery';
-import { MemberLookup } from './pages/MemberLookup';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
@@ -80,23 +75,15 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const isPublicOrMember = role === 'PUBLIC' || role === 'MEMBER';
-
   return (
     <Router>
       <PhoneWrapper>
         <ScreenTransitionContainer>
           <Routes>
-            {isPublicOrMember ? (
-              // Public / Member Portal Routes
+            {!role || role === 'PUBLIC' ? (
+              // Not logged in -> Directly show Login page
               <>
-                <Route path="/" element={<Home />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/events/:id" element={<EventDetails />} />
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/my-contribution" element={<MemberLookup />} />
-                <Route path="/login" element={<Login />} />
-                {/* Fallback to Home */}
+                <Route path="/" element={<Login />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (
