@@ -43,7 +43,7 @@ interface ContributionFeedItem {
 }
 
 export const Dashboard: React.FC = () => {
-  const { token, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
 
   const [selectedYear, setSelectedYear] = useState<number>(2026);
@@ -52,6 +52,14 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
+  const [videoError, setVideoError] = useState(false);
+
+  const getGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr < 12) return 'Good Morning';
+    if (hr < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
   const todayDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -185,8 +193,9 @@ export const Dashboard: React.FC = () => {
             <Menu className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-sm font-black tracking-[0.15em] text-primary-maroon font-serif uppercase">
-              Team Garuda
+            <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">{getGreeting()}</span>
+            <h2 className="text-xl font-bold tracking-wide text-primary-maroon font-serif mt-0.5 truncate max-w-[200px]">
+              {user?.username?.toUpperCase() || 'TEAM GARUDA'}
             </h2>
           </div>
         </div>
@@ -216,8 +225,11 @@ export const Dashboard: React.FC = () => {
             muted 
             playsInline 
             className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
+            onError={() => {
+              setVideoError(true);
+            }}
+            onPlay={() => {
+              setVideoError(false);
             }}
           >
             <source src="/video.mp4" type="video/mp4" />
@@ -229,18 +241,21 @@ export const Dashboard: React.FC = () => {
           {/* Subtle elegant design accents */}
           <div className="absolute top-2 left-2 right-2 bottom-2 border border-antique-gold/10 rounded-2xl pointer-events-none z-10" />
           
-          <div className="z-10 relative">
-            <h1 className="text-xl sm:text-2xl font-serif font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-light-gold via-antique-gold to-[#fff6c5] drop-shadow-md uppercase animate-pulse">
-              Team Garuda
-            </h1>
-            <div className="flex items-center justify-center gap-1.5 mt-2">
-              <span className="h-[1px] w-8 bg-antique-gold/40"></span>
-              <span className="text-[9px] font-extrabold uppercase tracking-[0.3em] text-antique-gold animate-glow">
-                Sri Ganesha Krupa
-              </span>
-              <span className="h-[1px] w-8 bg-antique-gold/40"></span>
+          {/* Show gold text overlay only if the video fails to load (fallback) to prevent double/overlapping text */}
+          {videoError && (
+            <div className="z-10 relative">
+              <h1 className="text-xl sm:text-2xl font-serif font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-light-gold via-antique-gold to-[#fff6c5] drop-shadow-md uppercase animate-pulse">
+                Team Garuda
+              </h1>
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <span className="h-[1px] w-8 bg-antique-gold/40"></span>
+                <span className="text-[9px] font-extrabold uppercase tracking-[0.3em] text-antique-gold animate-glow">
+                  Sri Ganesha Krupa
+                </span>
+                <span className="h-[1px] w-8 bg-antique-gold/40"></span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Quick Actions - horizontal scroll list */}
