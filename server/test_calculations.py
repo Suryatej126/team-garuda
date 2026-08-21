@@ -37,10 +37,10 @@ def run_tests():
         print(f"Calculated Total Public Donations (Chandhalu) (2026): Rs. {total_chandhalu:,.2f}")
         assert total_chandhalu == 0.00, f"Expected 0.00, got {total_chandhalu}"
         
-        # 4. Total Funds (Contributions + Sponsorships + Chandhalu)
-        total_funds = total_contributions + total_sponsorships + total_chandhalu
-        print(f"Calculated Total Funds (Contributions + Sponsorships + Chandhalu) (2026): Rs. {total_funds:,.2f}")
-        assert total_funds == 6000.00, f"Expected 6,000.00, got {total_funds}"
+        # 4. Total Funds (Sponsorships + Chandhalu - Excludes Committee Member Money)
+        total_funds = total_sponsorships + total_chandhalu
+        print(f"Calculated Total Funds (Sponsorships + Chandhalu) (2026): Rs. {total_funds:,.2f}")
+        assert total_funds == 0.00, f"Expected 0.00, got {total_funds}"
 
         # 5. Total Expenses
         total_expenses = db.query(func.sum(Expense.amount)).filter(
@@ -53,7 +53,7 @@ def run_tests():
         # 6. Current Balance (Total Funds - Total Expenses)
         current_balance = total_funds - total_expenses
         print(f"Calculated Current Balance (2026): Rs. {current_balance:,.2f}")
-        assert current_balance == 6000.00, f"Expected 6,000.00, got {current_balance}"
+        assert current_balance == 0.00, f"Expected 0.00, got {current_balance}"
 
         print("\nSUCCESS: All financial calculations are mathematically accurate!")
         sys.exit(0)

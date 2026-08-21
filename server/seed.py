@@ -21,35 +21,7 @@ def seed_db():
 
         print("Cleared existing database tables.")
 
-        # 1. Seed Users (Admin & Main Committee Members)
-        admin = User(
-            username="admin",
-            email="admin@teamgaruda.in",
-            password_hash=hash_password("admin123"),
-            role="ADMIN"
-        )
-        comm_pass_hash = hash_password("garuda123")
-        aditya = User(username="aditya", email="aditya@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-        narendra = User(username="narendra", email="narendra@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-        hemaraj = User(username="hemaraj", email="hemaraj@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-        bhimeesh = User(username="bhimeesh", email="bhimeesh@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-        ganesh = User(username="ganesh", email="ganesh@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-        prakash = User(username="prakash", email="prakash@teamgaruda.in", password_hash=comm_pass_hash, role="COMMITTEE")
-
-        db.add_all([admin, aditya, narendra, hemaraj, bhimeesh, ganesh, prakash])
-        db.commit()
-        for u in [admin, aditya, narendra, hemaraj, bhimeesh, ganesh, prakash]:
-            db.refresh(u)
-
-        # User aliases to fix undefined variable references
-        suriya = hemaraj
-        teja = aditya
-        vinay = narendra
-
-        print("Seeded 1 Admin and 6 Committee users.")
-
-        # 2. Seed Members (Committee & Core Members, all PINs are "123456")
-        member_pin_hash = hash_password("123456")
+        # Define Members Data at the top
         members_data = [
             {"member_id": "TG001", "name": "Aditya", "phone": "8919823457"},
             {"member_id": "TG002", "name": "Narendra", "phone": "9666865197"},
@@ -65,6 +37,40 @@ def seed_db():
             {"member_id": "TG012", "name": "Kalyan", "phone": "9000100016"},
             {"member_id": "TG013", "name": "Sandeep", "phone": "9000100017"},
         ]
+
+        # 1. Seed Users (Admin & 13 Committee Members)
+        admin = User(
+            username="admin",
+            email="admin@teamgaruda.in",
+            password_hash=hash_password("admin123"),
+            role="ADMIN"
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+
+        comm_pass_hash = hash_password("garuda123")
+        users_to_add = []
+        for m in members_data:
+            username = m["name"].lower().replace(" ", "")
+            email = f"{username}@teamgaruda.in"
+            u = User(
+                username=username,
+                email=email,
+                password_hash=comm_pass_hash,
+                role="COMMITTEE"
+            )
+            users_to_add.append(u)
+
+        db.add_all(users_to_add)
+        db.commit()
+        for u in users_to_add:
+            db.refresh(u)
+
+        print("Seeded 1 Admin and 13 Committee users.")
+
+        # 2. Seed Members (Committee & Core Members, all PINs are "123456")
+        member_pin_hash = hash_password("123456")
 
         members = []
         for m in members_data:

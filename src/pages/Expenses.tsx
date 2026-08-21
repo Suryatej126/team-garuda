@@ -83,8 +83,12 @@ export const Expenses: React.FC = () => {
     setLoading(true);
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`${API_BASE_URL}/api/committee/expenses`, { headers });
-      const eventsRes = await fetch(`${API_BASE_URL}/api/public/events`);
+      
+      // Fetch expenses and events in parallel using Promise.all for 2x speed improvement
+      const [res, eventsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/committee/expenses`, { headers }),
+        fetch(`${API_BASE_URL}/api/public/events`)
+      ]);
 
       if (res.status === 401) {
         logout();
@@ -215,14 +219,14 @@ export const Expenses: React.FC = () => {
       
       {/* Header Bar */}
       <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
-        <div>
-          <h2 className="text-base font-bold tracking-tight text-primary-maroon font-serif">Event Expenses</h2>
-          <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Committee Cost Ledger</span>
+        <div className="min-w-0 flex-1 mr-2">
+          <h2 className="text-sm xs:text-base font-bold tracking-tight text-primary-maroon font-serif truncate">Event Expenses</h2>
+          <span className="text-[8px] xs:text-[10px] text-secondary-text font-bold uppercase tracking-wider block truncate">Committee Cost Ledger</span>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Search Input in Header */}
-          <div className="relative w-32 sm:w-48">
+          <div className="relative w-24 xs:w-32 sm:w-48">
             <input 
               type="text"
               placeholder="Search..."

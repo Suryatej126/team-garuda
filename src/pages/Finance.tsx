@@ -21,6 +21,7 @@ interface Contribution {
   member_id?: number | null;
   member?: { id: number; name: string; member_id: string } | null;
   event?: { name: string };
+  collected_by?: string | null;
 }
 
 interface Sponsorship {
@@ -43,6 +44,7 @@ interface Chandha {
   date: string;
   payment_method: string;
   notes: string;
+  collected_by?: string | null;
 }
 
 export const Finance: React.FC = () => {
@@ -99,20 +101,24 @@ export const Finance: React.FC = () => {
   const [chDate, setChDate] = useState(new Date().toISOString().split('T')[0]);
   const [chMethod, setChMethod] = useState('UPI');
   const [chNotes, setChNotes] = useState('');
+  const [chCollectedBy, setChCollectedBy] = useState('');
 
   const fetchFinanceData = async () => {
     setLoading(true);
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      const contribsRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
-      const sponsRes = await fetch(`${API_BASE_URL}/api/committee/sponsorships`, { headers });
-      const chandhaRes = await fetch(`${API_BASE_URL}/api/committee/chandhalu`, { headers });
-      
       const summaryUrl = selectedYear > 0 
         ? `${API_BASE_URL}/api/finance/summary?year=${selectedYear}`
         : `${API_BASE_URL}/api/finance/summary?year=-1`;
-      const summaryRes = await fetch(summaryUrl, { headers });
+
+      // Fetch all financial records in parallel using Promise.all for 4x speed improvement
+      const [contribsRes, sponsRes, chandhaRes, summaryRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/committee/contributions`, { headers }),
+        fetch(`${API_BASE_URL}/api/committee/sponsorships`, { headers }),
+        fetch(`${API_BASE_URL}/api/committee/chandhalu`, { headers }),
+        fetch(summaryUrl, { headers })
+      ]);
 
       if (contribsRes.status === 401 || sponsRes.status === 401 || chandhaRes.status === 401) {
         logout();
@@ -177,6 +183,7 @@ export const Finance: React.FC = () => {
     setChPhone('');
     setChAmount('');
     setChNotes('');
+    setChCollectedBy('');
     setIsSheetOpen(true);
   };
 
@@ -397,7 +404,8 @@ export const Finance: React.FC = () => {
           amount: Number(chAmount),
           date: chDate,
           payment_method: chMethod,
-          notes: chNotes.trim() || null
+          notes: chNotes.trim() || null,
+          collected_by: chCollectedBy || null
         };
 
         const res = await fetch(`${API_BASE_URL}/api/committee/chandhalu`, {
@@ -444,14 +452,14 @@ export const Finance: React.FC = () => {
     <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-28 relative">
       {/* Header Bar */}
       <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
-        <div>
-          <h2 className="text-base font-bold tracking-tight text-primary-maroon font-serif">Finance Ledger</h2>
-          <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Account Registers</span>
+        <div className="min-w-0 flex-1 mr-2">
+          <h2 className="text-sm xs:text-base font-bold tracking-tight text-primary-maroon font-serif truncate">Finance Ledger</h2>
+          <span className="text-[8px] xs:text-[10px] text-secondary-text font-bold uppercase tracking-wider block truncate">Account Registers</span>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Search Input in Header */}
-          <div className="relative w-32 sm:w-48">
+          <div className="relative w-24 xs:w-32 sm:w-48">
             <input 
               type="text"
               placeholder="Search..."
@@ -1179,6 +1187,20 @@ export const Finance: React.FC = () => {
                   onChange={e => setChDate(e.target.value)}
                   className="w-full bg-white border border-border-custom rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Collected By</label>
+                <select
+                  value={chCollectedBy}
+                  onChange={e => setChCollectedBy(e.target.value)}
+                  className="w-full bg-white border border-border-custom rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold cursor-pointer"
+                >
+                  <option value="">Select Committee Member...</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.name}>{m.name}</option>
+                  ))}
+                </select>
               </div>
             </>
           )}

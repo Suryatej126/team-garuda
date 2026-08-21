@@ -125,6 +125,7 @@ class ContributionResponse(BaseModel):
     purpose: Optional[str] = None
     status: str
     notes: Optional[str] = None
+    collected_by: Optional[str] = None
     created_at: datetime.datetime
 
     class Config:
@@ -143,6 +144,7 @@ class ContributionCreate(BaseModel):
     purpose: Optional[str] = None
     status: Optional[str] = "PAID"
     notes: Optional[str] = None
+    collected_by: Optional[str] = None
 
 class ContributionUpdate(BaseModel):
     member_id: Optional[int] = None
@@ -157,6 +159,7 @@ class ContributionUpdate(BaseModel):
     purpose: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    collected_by: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -251,6 +254,7 @@ class ChandhaResponse(BaseModel):
     date: datetime.date
     payment_method: str
     notes: Optional[str]
+    collected_by: Optional[str] = None
     created_at: datetime.datetime
 
     class Config:
@@ -263,6 +267,7 @@ class ChandhaCreate(BaseModel):
     date: datetime.date
     payment_method: str
     notes: Optional[str] = None
+    collected_by: Optional[str] = None
 
 class ChandhaUpdate(BaseModel):
     donor_name: Optional[str] = None
@@ -271,6 +276,7 @@ class ChandhaUpdate(BaseModel):
     date: Optional[datetime.date] = None
     payment_method: Optional[str] = None
     notes: Optional[str] = None
+    collected_by: Optional[str] = None
 
 # --- Routes ---
 
@@ -367,7 +373,7 @@ def get_finance_summary(year: Optional[int] = None, db: Session = Depends(get_db
     total_contributions = float(contrib_q.scalar() or 0.0)
     total_sponsorships = float(spons_q.scalar() or 0.0)
     total_chandhalu = float(chandha_q.scalar() or 0.0)
-    total_funds = total_contributions + total_sponsorships + total_chandhalu
+    total_funds = total_sponsorships + total_chandhalu
     total_expenses = float(expense_q.scalar() or 0.0)
     current_balance = total_funds - total_expenses
 
@@ -566,7 +572,8 @@ def create_contribution(contrib_data: ContributionCreate, db: Session = Depends(
         event_id=contrib_data.event_id,
         purpose=contrib_data.purpose,
         status=contrib_data.status or "PAID",
-        notes=contrib_data.notes
+        notes=contrib_data.notes,
+        collected_by=contrib_data.collected_by
     )
     db.add(contrib)
     db.commit()
@@ -621,6 +628,8 @@ def update_contribution(contrib_id: int, contrib_data: ContributionUpdate, db: S
         contrib.status = contrib_data.status
     if contrib_data.notes is not None:
         contrib.notes = contrib_data.notes
+    if contrib_data.collected_by is not None:
+        contrib.collected_by = contrib_data.collected_by
         
     db.commit()
     db.refresh(contrib)
@@ -702,6 +711,7 @@ def map_contribution_to_chandha(c: Contribution) -> dict:
         "date": c.date,
         "payment_method": c.payment_method,
         "notes": c.notes,
+        "collected_by": c.collected_by,
         "created_at": c.created_at
     }
 
@@ -735,7 +745,8 @@ def create_chandha(chandha_data: ChandhaCreate, db: Session = Depends(get_db), c
         date=chandha_data.date,
         payment_method=chandha_data.payment_method,
         status="PAID",
-        notes=chandha_data.notes
+        notes=chandha_data.notes,
+        collected_by=chandha_data.collected_by
     )
     db.add(contrib)
     db.commit()
@@ -774,6 +785,8 @@ def update_chandha(chandha_id: int, chandha_data: ChandhaUpdate, db: Session = D
         contrib.payment_method = chandha_data.payment_method
     if chandha_data.notes is not None:
         contrib.notes = chandha_data.notes
+    if chandha_data.collected_by is not None:
+        contrib.collected_by = chandha_data.collected_by
         
     db.commit()
     db.refresh(contrib)

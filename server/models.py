@@ -77,6 +77,7 @@ class Contribution(Base):
     status = Column(String(20), default='PAID', index=True)  # 'PENDING', 'PAID'
     notes = Column(Text)
     recorded_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    collected_by = Column(String(100), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
