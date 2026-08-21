@@ -2,6 +2,11 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+# Load .env file from the server directory explicitly if run from elsewhere
+config_dir = os.path.dirname(os.path.abspath(__file__))
+server_env = os.path.join(config_dir, ".env")
+if os.path.exists(server_env):
+    load_dotenv(server_env, override=True)
 
 # Support both full DATABASE_URL (Neon/Render style) or individual parts
 DATABASE_URL = os.getenv("DATABASE_URL")

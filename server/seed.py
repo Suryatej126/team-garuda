@@ -161,6 +161,7 @@ def seed_db():
                 status_val = "PAID" if item["balance"] == 0 else ("PARTIAL" if item["paid"] > 0 else "PENDING")
                 notes_val = f"[Pending: {int(item['balance'])}]" if item["balance"] > 0 else None
                 
+                print(f"DEBUG SEED: {item['name']} -> Member ID: {m_rec.id}, Contributor ID: {c_rec.id}, Amount: {item['paid']}, Status: {status_val}")
                 contrib = Contribution(
                     contributor_id=c_rec.id,
                     member_id=m_rec.id,
