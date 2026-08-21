@@ -972,3 +972,52 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_us
     db.commit()
     db.refresh(user)
     return user
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+
+@app.put("/api/admin/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    usr = db.query(User).filter(User.id == user_id).first()
+    if not usr:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user_data.username is not None:
+        new_username = user_data.username.strip()
+        if new_username != usr.username:
+            existing = db.query(User).filter(User.username == new_username).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Username already exists")
+            usr.username = new_username
+            
+    if user_data.email is not None:
+        new_email = user_data.email.strip()
+        if new_email != usr.email:
+            existing_email = db.query(User).filter(User.email == new_email).first()
+            if existing_email:
+                raise HTTPException(status_code=400, detail="Email already exists")
+            usr.email = new_email
+            
+    if user_data.password is not None and user_data.password.strip():
+        usr.password_hash = hash_password(user_data.password.strip())
+        
+    if user_data.role is not None:
+        usr.role = user_data.role
+        
+    db.commit()
+    db.refresh(usr)
+    return usr
+
+@app.delete("/api/admin/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    usr = db.query(User).filter(User.id == user_id).first()
+    if not usr:
+        raise HTTPException(status_code=404, detail="User not found")
+    if usr.username == "admin" or usr.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete admin or current user")
+    db.delete(usr)
+    db.commit()
+    return {"message": "User deleted successfully"}

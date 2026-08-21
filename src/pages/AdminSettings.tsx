@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Settings, LogOut, UserCheck, PlusCircle } from 'lucide-react';
+import { Settings, LogOut, UserCheck, PlusCircle, Edit2, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface UserRecord {
@@ -28,6 +28,7 @@ export const AdminSettings: React.FC = () => {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('COMMITTEE');
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
@@ -52,6 +53,7 @@ export const AdminSettings: React.FC = () => {
 
   const openAddUserSheet = () => {
     setFormError('');
+    setEditingUser(null);
     setNewUsername('');
     setNewEmail('');
     setNewPassword('');
@@ -59,28 +61,66 @@ export const AdminSettings: React.FC = () => {
     setIsSheetOpen(true);
   };
 
+  const openEditUserSheet = (usr: UserRecord) => {
+    setFormError('');
+    setEditingUser(usr);
+    setNewUsername(usr.username);
+    setNewEmail(usr.email);
+    setNewPassword('');
+    setNewRole(usr.role);
+    setIsSheetOpen(true);
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const errData = await res.json();
+        setFormError(errData.detail || 'Failed to delete user.');
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+    }
+  };
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUsername.trim() || !newEmail.trim() || !newPassword.trim()) {
-      setFormError('Please fill out all fields.');
+    if (!newUsername.trim() || !newEmail.trim() || (!editingUser && !newPassword.trim())) {
+      setFormError('Please fill out all required fields.');
       return;
     }
     setFormError('');
     setSaving(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
-        method: 'POST',
+      const url = editingUser 
+        ? `${API_BASE_URL}/api/admin/users/${editingUser.id}`
+        : `${API_BASE_URL}/api/admin/users`;
+        
+      const method = editingUser ? 'PUT' : 'POST';
+      
+      const payload: any = {
+        username: newUsername.trim(),
+        email: newEmail.trim(),
+        role: newRole
+      };
+      if (newPassword.trim()) {
+        payload.password = newPassword.trim();
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          username: newUsername,
-          email: newEmail,
-          password: newPassword,
-          role: newRole
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -88,7 +128,7 @@ export const AdminSettings: React.FC = () => {
         fetchUsers();
       } else {
         const errData = await res.json();
-        setFormError(errData.detail || 'Failed to create user.');
+        setFormError(errData.detail || 'Failed to save user.');
       }
     } catch (err) {
       setFormError('Network error. Check database backend.');
@@ -149,17 +189,40 @@ export const AdminSettings: React.FC = () => {
               <div className="flex flex-col gap-2">
                 {usersList.map(usr => (
                   <div key={usr.id} className="bg-white border border-border-custom px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
-                    <div className="min-w-0">
-                      <h5 className="text-xs font-extrabold text-primary-text">{usr.username}</h5>
-                      <span className="text-[9px] text-secondary-text font-medium font-mono">{usr.email}</span>
+                    <div className="min-w-0 flex-1 mr-2">
+                      <div className="flex items-center gap-2">
+                        <h5 className="text-xs font-extrabold text-primary-text">{usr.username}</h5>
+                        <span className={`text-[7px] font-extrabold px-1.5 py-0.2 rounded uppercase border ${
+                          usr.role === 'ADMIN' 
+                            ? 'bg-primary-maroon/10 border-primary-maroon/20 text-primary-maroon' 
+                            : 'bg-secondary-bg border-border-custom text-secondary-text'
+                        }`}>
+                          {usr.role}
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-secondary-text font-medium font-mono block mt-0.5 truncate">{usr.email}</span>
                     </div>
-                    <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded uppercase border ${
-                      usr.role === 'ADMIN' 
-                        ? 'bg-primary-maroon/10 border-primary-maroon/20 text-primary-maroon' 
-                        : 'bg-secondary-bg border-border-custom text-secondary-text'
-                    }`}>
-                      {usr.role}
-                    </span>
+                    
+                    {/* User Edit/Delete Actions */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => openEditUserSheet(usr)}
+                        className="p-1.5 rounded-lg bg-secondary-bg border border-border-custom text-secondary-text hover:text-primary-maroon active:scale-90 transition-all cursor-pointer"
+                        title="Edit Credentials"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      {usr.username !== 'admin' && usr.id !== user?.id && (
+                        <button
+                          onClick={() => handleDeleteUser(usr.id)}
+                          className="p-1.5 rounded-lg bg-secondary-bg border border-border-custom text-secondary-text hover:text-error active:scale-90 transition-all cursor-pointer"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -188,7 +251,7 @@ export const AdminSettings: React.FC = () => {
       <BottomSheet 
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
-        title="Register New User"
+        title={editingUser ? "Edit User Credentials" : "Register New User"}
       >
         <form onSubmit={handleAddUser} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -214,10 +277,12 @@ export const AdminSettings: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Initial Password</label>
+            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">
+              {editingUser ? "New Password (Optional)" : "Initial Password"}
+            </label>
             <input 
               type="password" 
-              placeholder="••••••••" 
+              placeholder={editingUser ? "Leave empty to keep current password" : "••••••••"} 
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text placeholder:text-secondary-text/50"
@@ -267,7 +332,7 @@ export const AdminSettings: React.FC = () => {
             {saving ? (
               <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
             ) : (
-              <span>Create User</span>
+              <span>{editingUser ? "Save Changes" : "Create User"}</span>
             )}
           </button>
         </form>
