@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User as UserIcon, AlertCircle, Bird } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 export const Login: React.FC = () => {
@@ -88,9 +88,6 @@ export const Login: React.FC = () => {
                 }}
                 alt="Logo" 
               />
-              <div className="absolute inset-0 flex items-center justify-center text-antique-gold z-0">
-                <Bird className="w-7 h-7 stroke-[1.8]" />
-              </div>
             </div>
             
             <h1 className="text-xl font-serif font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#fff6c5] via-antique-gold to-[#f5d078] uppercase drop-shadow-md">
