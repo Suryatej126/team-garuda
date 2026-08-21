@@ -613,40 +613,25 @@ export const Members: React.FC = () => {
           <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Digital Contribution Book</span>
         </div>
         
-        {/* Year Selector dropdown */}
         <div className="flex items-center gap-2">
-          <select 
-            value={selectedYear} 
-            onChange={e => setSelectedYear(Number(e.target.value))}
-            className="bg-white border border-border-custom rounded-xl px-3 py-1.5 text-xs text-primary-maroon font-bold focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
-          >
-            {[2026, 2025, 2024, 2023].map(yr => (
-              <option key={yr} value={yr}>{yr}</option>
-            ))}
-          </select>
+          {/* Search Input in Header */}
+          <div className="relative w-32 sm:w-48">
+            <input 
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl pl-8 pr-2 py-1.5 text-[11px] focus:outline-none focus:border-primary-maroon font-semibold text-primary-text placeholder:text-secondary-text/50"
+            />
+            <Search className="w-3.5 h-3.5 text-secondary-text absolute left-2.5 top-2" />
+          </div>
 
           <button 
-            onClick={() => setIsImportSheetOpen(true)}
-            className="w-8 h-8 rounded-xl bg-white border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
-            title="Import Historical CSV"
+            onClick={openAddContribution}
+            className="w-9 h-9 rounded-full bg-primary-maroon text-white border border-light-gold flex items-center justify-center hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer shadow-md shrink-0"
+            title="Add Contribution"
           >
-            <Upload className="w-4 h-4" />
-          </button>
-
-          <button 
-            onClick={handleExportCSV}
-            className="w-8 h-8 rounded-xl bg-white border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
-            title="Export to Excel/CSV"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-
-          <button 
-            onClick={handleExportPDF}
-            className="w-8 h-8 rounded-xl bg-white border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
-            title="Export to PDF Statement"
-          >
-            <Printer className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -699,58 +684,76 @@ export const Members: React.FC = () => {
           )}
         </div>
 
-        {/* Primary Action Button */}
-        <button 
-          onClick={openAddContribution}
-          className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-3.5 rounded-2xl flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <Plus className="w-5 h-5 stroke-[2]" />
-          <span>Add Contribution</span>
-        </button>
+        {/* Actions Row (Year, Import, Export, Print) */}
+        <div className="flex items-center justify-between gap-2.5 bg-white border border-border-custom p-3 rounded-2xl shadow-sm mt-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-secondary-text font-bold uppercase tracking-wider">Year:</span>
+            <select 
+              value={selectedYear} 
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="bg-secondary-bg border border-border-custom rounded-xl px-2 py-1 text-[11px] text-primary-maroon font-extrabold focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
+            >
+              {[2026, 2025, 2024, 2023].map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => setIsImportSheetOpen(true)}
+              className="w-7 h-7 rounded-lg bg-secondary-bg border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
+              title="Import Historical CSV"
+            >
+              <Upload className="w-3.5 h-3.5 text-antique-gold" />
+            </button>
+
+            <button 
+              onClick={handleExportCSV}
+              className="w-7 h-7 rounded-lg bg-secondary-bg border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
+              title="Export to Excel/CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-antique-gold" />
+            </button>
+
+            <button 
+              onClick={handleExportPDF}
+              className="w-7 h-7 rounded-lg bg-secondary-bg border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-95 transition-all cursor-pointer"
+              title="Export to PDF Statement"
+            >
+              <Printer className="w-3.5 h-3.5 text-antique-gold" />
+            </button>
+          </div>
+        </div>
 
       </div>
 
-      {/* Filters & Search */}
-      <div className="px-5 pb-3 flex flex-col gap-3">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-secondary-text/80">
-            <Search className="w-4 h-4" />
-          </span>
-          <input 
-            type="text"
-            placeholder="Search contributor, phone, transaction..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-border-custom rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-primary-maroon text-primary-text placeholder:text-secondary-text/60 font-semibold"
-          />
-        </div>
+      {/* Filters */}
+      <div className="px-5 pb-3 flex gap-2">
+        {/* Method Filter */}
+        <select
+          value={paymentMethodFilter}
+          onChange={e => setPaymentMethodFilter(e.target.value)}
+          className="flex-1 bg-white border border-border-custom rounded-xl p-2.5 text-[10px] font-extrabold text-secondary-text focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
+        >
+          <option value="ALL">All Methods</option>
+          <option value="CASH">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="BANK_TRANSFER">Bank Transfer</option>
+          <option value="OTHER">Other</option>
+        </select>
 
-        <div className="flex gap-2">
-          {/* Method Filter */}
-          <select
-            value={paymentMethodFilter}
-            onChange={e => setPaymentMethodFilter(e.target.value)}
-            className="flex-1 bg-white border border-border-custom rounded-xl p-2.5 text-[10px] font-extrabold text-secondary-text focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
-          >
-            <option value="ALL">All Methods</option>
-            <option value="CASH">Cash</option>
-            <option value="UPI">UPI</option>
-            <option value="BANK_TRANSFER">Bank Transfer</option>
-            <option value="OTHER">Other</option>
-          </select>
-
-          {/* Event Filter */}
-          <select
-            value={eventFilter}
-            onChange={e => setEventFilter(e.target.value)}
-            className="flex-1 bg-white border border-border-custom rounded-xl p-2.5 text-[10px] font-extrabold text-secondary-text focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
-          >
-            <option value="ALL">All Events</option>
-            {events.map(evt => (
-              <option key={evt.id} value={evt.id}>{evt.name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Event Filter */}
+        <select
+          value={eventFilter}
+          onChange={e => setEventFilter(e.target.value)}
+          className="flex-1 bg-white border border-border-custom rounded-xl p-2.5 text-[10px] font-extrabold text-secondary-text focus:outline-none focus:border-primary-maroon/50 cursor-pointer"
+        >
+          <option value="ALL">All Events</option>
+          {events.map(evt => (
+            <option key={evt.id} value={evt.id}>{evt.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Contributor Rankings List */}

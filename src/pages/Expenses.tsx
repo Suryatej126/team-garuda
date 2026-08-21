@@ -16,7 +16,8 @@ import {
   Truck,
   Flower2,
   HelpCircle,
-  TrendingDown
+  TrendingDown,
+  Search
 } from 'lucide-react';
 
 interface ExpenseItem {
@@ -58,6 +59,9 @@ export const Expenses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
+  // Search filter query
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Sheet & Form States
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -182,12 +186,20 @@ export const Expenses: React.FC = () => {
     }
   };
 
-  // Filtered by year and category
+  // Filtered by year, category and search query
   const filteredExpenses = expenses.filter(item => {
     const itemYear = new Date(item.date).getFullYear();
     const matchesYear = selectedYear > 0 ? itemYear === selectedYear : true;
     const matchesCat = selectedCategory === 'ALL' || item.category === selectedCategory;
-    return matchesYear && matchesCat;
+    
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = !query || 
+      item.name?.toLowerCase().includes(query) ||
+      (item.notes && item.notes.toLowerCase().includes(query)) ||
+      item.payment_method?.toLowerCase().includes(query) ||
+      (item.event?.name && item.event.name.toLowerCase().includes(query));
+      
+    return matchesYear && matchesCat && matchesSearch;
   });
 
   const totalSpent = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -208,13 +220,27 @@ export const Expenses: React.FC = () => {
           <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Committee Cost Ledger</span>
         </div>
         
-        <button 
-          onClick={openAddSheet}
-          className="flex items-center gap-1 bg-primary-maroon text-white font-extrabold text-[11px] px-3.5 py-1.5 rounded-full border border-light-gold shadow-md hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Expense</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Search Input in Header */}
+          <div className="relative w-32 sm:w-48">
+            <input 
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl pl-8 pr-2 py-1.5 text-[11px] focus:outline-none focus:border-primary-maroon font-semibold text-primary-text placeholder:text-secondary-text/50"
+            />
+            <Search className="w-3.5 h-3.5 text-secondary-text absolute left-2.5 top-2" />
+          </div>
+
+          <button 
+            onClick={openAddSheet}
+            className="w-9 h-9 rounded-full bg-primary-maroon text-white border border-light-gold flex items-center justify-center hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer shadow-md shrink-0"
+            title="Add Expense"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Floating Success Toast */}

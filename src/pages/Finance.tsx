@@ -449,13 +449,27 @@ export const Finance: React.FC = () => {
           <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">Account Registers</span>
         </div>
         
-        <button 
-          onClick={openAddSheet}
-          className="w-9 h-9 rounded-full bg-primary-maroon text-white border border-light-gold flex items-center justify-center hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer shadow-md"
-          title="Add New Entry"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Search Input in Header */}
+          <div className="relative w-32 sm:w-48">
+            <input 
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl pl-8 pr-2 py-1.5 text-[11px] focus:outline-none focus:border-primary-maroon font-semibold text-primary-text placeholder:text-secondary-text/50"
+            />
+            <Search className="w-3.5 h-3.5 text-secondary-text absolute left-2.5 top-2" />
+          </div>
+
+          <button 
+            onClick={openAddSheet}
+            className="w-9 h-9 rounded-full bg-primary-maroon text-white border border-light-gold flex items-center justify-center hover:bg-dark-maroon active:scale-95 transition-all cursor-pointer shadow-md shrink-0"
+            title="Add New Entry"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Segmented Tab Controls */}
@@ -591,24 +605,7 @@ export const Finance: React.FC = () => {
       )}
 
       {/* 5. SEARCH & FILTER CONTROLS */}
-      <div className="px-5 py-2.5 shrink-0 bg-white/70 border-b border-border-custom flex flex-col gap-2.5 sticky top-[138px] z-20 backdrop-blur-md">
-        {/* Search Input */}
-        <div className="relative">
-          <input 
-            type="text"
-            placeholder={
-              activeTab === 'CONTRIBUTIONS' 
-                ? "Search by name or notes..." 
-                : activeTab === 'SPONSORSHIPS' 
-                ? "Search by sponsor, item or payment method..." 
-                : "Search by donor name, phone or payment method..."
-            }
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-border-custom rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary-maroon font-semibold text-primary-text placeholder:text-secondary-text/50"
-          />
-          <Search className="w-3.5 h-3.5 text-secondary-text absolute left-3 top-2.5" />
-        </div>
+      <div className="px-5 py-2.5 shrink-0 bg-white/70 border-b border-border-custom flex flex-col gap-2 sticky top-[138px] z-20 backdrop-blur-md">
 
         {/* Filter Pills Row */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
