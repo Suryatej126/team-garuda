@@ -209,7 +209,10 @@ export const Dashboard: React.FC = () => {
       {/* Header Bar */}
       <div className="h-20 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/90 backdrop-blur sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <button className="p-1 rounded-full text-secondary-text hover:text-primary-maroon active:scale-90 transition-all">
+          <button 
+            onClick={() => navigate('/more')}
+            className="p-1 rounded-full text-secondary-text hover:text-primary-maroon active:scale-90 transition-all cursor-pointer"
+          >
             <Menu className="w-5 h-5" />
           </button>
           <div>
@@ -236,18 +239,26 @@ export const Dashboard: React.FC = () => {
           <span className="text-[10px] text-secondary-text font-bold tracking-wide">{todayDate}</span>
         </div>
 
-        {/* Welcome message with lotus logo backdrop */}
-        <div className="relative overflow-hidden bg-white border border-border-custom rounded-3xl p-5 shadow-sm">
-          {/* Subtle lotus ornament element (5% opacity vector) */}
-          <div className="absolute right-4 bottom-2 opacity-5 pointer-events-none text-antique-gold">
-            <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21a9 9 0 0 1-9-9 9 9 0 0 1 9-9 9 9 0 0 1 9 9 9 9 0 0 1-9 9m0-16.5a7.5 7.5 0 0 0-7.5 7.5 7.5 7.5 0 0 0 7.5 7.5 7.5 7.5 0 0 0 7.5-7.5 7.5 7.5 0 0 0-7.5-7.5z"/>
-            </svg>
+        {/* Luxury Animated TEAM GARUDA Banner */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary-maroon via-[#3d0303] to-[#120000] border-2 border-antique-gold/30 rounded-3xl p-6 shadow-xl flex flex-col justify-center items-center text-center group min-h-[120px]">
+          {/* Shimmer / Glow Animation overlays */}
+          <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0)_0%,rgba(255,215,0,0.1)_45%,rgba(255,215,0,0.2)_50%,rgba(255,215,0,0.1)_55%,rgba(255,255,255,0)_100%)] bg-[length:200%_100%] animate-shimmer pointer-events-none" />
+          
+          {/* Subtle elegant design accents */}
+          <div className="absolute top-2 left-2 right-2 bottom-2 border border-antique-gold/10 rounded-2xl pointer-events-none" />
+          
+          <div className="z-10">
+            <h1 className="text-xl sm:text-2xl font-serif font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-light-gold via-antique-gold to-[#fff6c5] drop-shadow-md uppercase animate-pulse">
+              Team Garuda
+            </h1>
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <span className="h-[1px] w-8 bg-antique-gold/40"></span>
+              <span className="text-[9px] font-extrabold uppercase tracking-[0.3em] text-antique-gold animate-glow">
+                Sri Ganesha Krupa
+              </span>
+              <span className="h-[1px] w-8 bg-antique-gold/40"></span>
+            </div>
           </div>
-          <h3 className="text-sm font-bold text-primary-maroon font-serif">Namaste, {user?.username}!</h3>
-          <p className="text-[11px] text-secondary-text leading-relaxed mt-1">
-            Welcome to the authorized Garuda committee management dashboard. Here is the real-time overview of current contributions, active members, and expenses.
-          </p>
         </div>
 
         {/* Quick Actions - horizontal scroll list */}

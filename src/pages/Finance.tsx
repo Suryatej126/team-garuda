@@ -524,30 +524,33 @@ export const Finance: React.FC = () => {
       {summary && (
         <div className="px-5 py-3 shrink-0 flex flex-col gap-3">
           <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest block -mb-1">
-            Ledger Overview ({selectedYear === 0 ? 'All Time' : selectedYear})
+            {activeTab === 'CONTRIBUTIONS' ? 'Committee Overview' : 'Ledger Overview'} ({selectedYear === 0 ? 'All Time' : selectedYear})
           </span>
           
-          <div className="grid grid-cols-2 gap-3">
-            {/* Total Income */}
-            <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
-              <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Total Income</span>
-              <div className="mt-1">
-                <span className="text-[10px] font-black text-primary-text block">
-                  ₹{summary.total_funds.toLocaleString()}
-                </span>
+          {/* Only show Total Income and Balance cards for non-committee tabs to prevent clumsy ₹0 stats */}
+          {activeTab !== 'CONTRIBUTIONS' && (
+            <div className="grid grid-cols-2 gap-3">
+              {/* Total Income */}
+              <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Total Income</span>
+                <div className="mt-1">
+                  <span className="text-[10px] font-black text-primary-text block">
+                    ₹{summary.total_funds.toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Current Balance */}
-            <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
-              <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Balance</span>
-              <div className="mt-1">
-                <span className="text-[10px] font-black text-primary-text block">
-                  ₹{summary.current_balance.toLocaleString()}
-                </span>
+              {/* Current Balance */}
+              <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Balance</span>
+                <div className="mt-1">
+                  <span className="text-[10px] font-black text-primary-text block">
+                    ₹{summary.current_balance.toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex items-center justify-between text-center divide-x divide-border-custom/50">
             {activeTab === 'CONTRIBUTIONS' && (() => {
@@ -688,78 +691,86 @@ export const Finance: React.FC = () => {
                 const matchesPayment = paymentMethodFilter === 'ALL' || item.payment_method === paymentMethodFilter;
                 return matchesSearch && matchesPayment;
               });
+
+            // Sort by givenAmount in descending order so highest contributor displays on top
+            const sortedFiltered = [...filtered].sort((a, b) => {
+              const valA = parseCommitteeDetails(a).givenAmount;
+              const valB = parseCommitteeDetails(b).givenAmount;
+              return valB - valA;
+            });
+
             return (
               <>
-                {filtered.length === 0 ? (
+                {sortedFiltered.length === 0 ? (
                   <div className="text-center p-8 bg-white border border-border-custom rounded-2xl text-xs text-secondary-text">
                     No matching committee contributions found.
                   </div>
                 ) : (
-                  filtered.map(item => {
+                  sortedFiltered.map(item => {
                     const { givenAmount, pendingAmount, totalPledge, cleanNotes } = parseCommitteeDetails(item);
                     return (
-                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+                      <div key={item.id} className="bg-white border border-border-custom p-3 rounded-xl flex flex-col gap-2.5 shadow-sm hover:shadow-md transition-shadow">
                         
                         {/* Top Row: Member Name, ID, Actions */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-primary-maroon/10 text-primary-maroon flex items-center justify-center font-bold text-xs">
+                            <div className="w-7 h-7 rounded-lg bg-primary-maroon/10 text-primary-maroon flex items-center justify-center font-bold text-[10px] shrink-0">
                               {item.member?.name?.charAt(0) || 'M'}
                             </div>
                             <div className="min-w-0">
                               <h4 className="text-xs font-black text-primary-text truncate">{item.member?.name || 'Unknown Member'}</h4>
-                              <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium flex-wrap">
+                              <div className="flex items-center gap-1.5 text-[9px] text-secondary-text font-semibold flex-wrap">
                                 <span className="font-mono text-antique-gold font-bold">{item.member?.member_id}</span>
                                 <span>•</span>
                                 <span>Pledge: ₹{totalPledge.toLocaleString()}</span>
                                 <span>•</span>
                                 <span>{item.date}</span>
                                 <span>•</span>
-                                <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">{item.payment_method}</span>
+                                <span className="font-mono text-[7px] uppercase bg-secondary-bg px-1 py-0.2 rounded text-primary-text font-black">{item.payment_method}</span>
                               </div>
                             </div>
                           </div>
-
+ 
                           {/* CRUD Action Buttons */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button 
                               onClick={() => openEditCommittee(item)}
-                              className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
+                              className="p-1 rounded-md text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
                               title="Edit Contribution"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button 
                               onClick={() => handleDelete('CONTRIBUTION', item.id)}
-                              className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
+                              className="p-1 rounded-md text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
                               title="Delete Record"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
-
+ 
                         {/* Middle Row: Given Amount vs Pending Amount Grid */}
-                        <div className="grid grid-cols-2 gap-2 bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/60">
+                        <div className="grid grid-cols-2 gap-1.5 bg-secondary-bg/40 p-2 rounded-lg border border-border-custom/40">
                           {/* Given / Paid */}
                           <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-success" />
+                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-success" />
                               <span>Given Amount</span>
                             </span>
-                            <span className="text-sm font-black text-success mt-0.5">₹{givenAmount.toLocaleString()}</span>
+                            <span className="text-xs font-black text-success mt-0.5">₹{givenAmount.toLocaleString()}</span>
                           </div>
-
+ 
                           {/* Pending Amount */}
                           <div className="flex flex-col border-l border-border-custom/80 pl-3">
-                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-warning" />
+                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5 text-warning" />
                               <span>Pending Amount</span>
                             </span>
                             {pendingAmount > 0 ? (
-                              <span className="text-sm font-black text-error mt-0.5">₹{pendingAmount.toLocaleString()}</span>
+                              <span className="text-xs font-black text-error mt-0.5">₹{pendingAmount.toLocaleString()}</span>
                             ) : (
-                              <span className="text-xs font-bold text-success mt-0.5">✓ Cleared (₹0)</span>
+                              <span className="text-[10px] font-bold text-success mt-0.5">✓ Cleared (₹0)</span>
                             )}
                           </div>
                         </div>
