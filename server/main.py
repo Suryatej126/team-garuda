@@ -801,6 +801,18 @@ def delete_chandha(chandha_id: int, db: Session = Depends(get_db), current_user:
     db.commit()
     return {"message": "Public contribution deleted successfully"}
 
+# Users lookup for expense paid_by dropdown
+class UserMinResponse(BaseModel):
+    id: int
+    username: str
+
+    class Config:
+        from_attributes = True
+
+@app.get("/api/committee/users", response_model=List[UserMinResponse])
+def get_committee_users(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    return db.query(User).filter(User.role.in_(["COMMITTEE", "ADMIN"])).order_by(User.username.asc()).all()
+
 # Expenses Management
 @app.get("/api/committee/expenses", response_model=List[ExpenseResponse])
 def get_expenses(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
@@ -816,6 +828,7 @@ def create_expense(
     event_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     receipt: Optional[UploadFile] = File(None),
+    paid_by_id: Optional[int] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_committee)
 ):
@@ -830,7 +843,7 @@ def create_expense(
         category=category,
         payment_method=payment_method,
         event_id=event_id,
-        paid_by=current_user.id,
+        paid_by=paid_by_id if paid_by_id is not None else current_user.id,
         receipt_url=receipt_url,
         notes=notes
     )

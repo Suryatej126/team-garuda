@@ -27,16 +27,31 @@ export const DonutChart: React.FC<DonutChartProps> = ({ contributions, sponsorsh
   const chOffset = -(((cPercent + sPercent) / 100) * circumference);
 
   return (
-    <div className="flex items-center gap-6 bg-white border border-border-custom p-4 rounded-2xl shadow-sm">
+    <div className="flex items-center gap-6 bg-white border border-border-custom p-4.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
       <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="maroonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8E2D32" />
+              <stop offset="100%" stopColor="#52171B" />
+            </linearGradient>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F5D078" />
+              <stop offset="100%" stopColor="#A87A2A" />
+            </linearGradient>
+            <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#2BB8A8" />
+              <stop offset="100%" stopColor="#104D47" />
+            </linearGradient>
+          </defs>
+          
           {/* Base empty circle */}
           <circle
             cx="60"
             cy="60"
             r={radius}
             className="stroke-secondary-bg fill-none"
-            strokeWidth="14"
+            strokeWidth="11"
           />
           
           {/* Contributions (Maroon) */}
@@ -45,10 +60,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({ contributions, sponsorsh
               cx="60"
               cy="60"
               r={radius}
-              className="stroke-primary-maroon fill-none transition-all duration-500"
-              strokeWidth="14"
+              stroke="url(#maroonGrad)"
+              className="fill-none transition-all duration-500"
+              strokeWidth="11"
               strokeDasharray={cDash}
               strokeDashoffset={0}
+              strokeLinecap="round"
             />
           )}
 
@@ -58,10 +75,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({ contributions, sponsorsh
               cx="60"
               cy="60"
               r={radius}
-              className="stroke-antique-gold fill-none transition-all duration-500"
-              strokeWidth="14"
+              stroke="url(#goldGrad)"
+              className="fill-none transition-all duration-500"
+              strokeWidth="11"
               strokeDasharray={sDash}
               strokeDashoffset={sOffset}
+              strokeLinecap="round"
             />
           )}
 
@@ -71,45 +90,61 @@ export const DonutChart: React.FC<DonutChartProps> = ({ contributions, sponsorsh
               cx="60"
               cy="60"
               r={radius}
-              className="stroke-soft-teal fill-none transition-all duration-500"
-              strokeWidth="14"
+              stroke="url(#tealGrad)"
+              className="fill-none transition-all duration-500"
+              strokeWidth="11"
               strokeDasharray={chDash}
               strokeDashoffset={chOffset}
+              strokeLinecap="round"
             />
           )}
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-[10px] text-secondary-text font-semibold uppercase tracking-wider">Total</span>
-          <span className="text-sm font-black text-primary-text">₹{(total / 1000).toFixed(1)}k</span>
+          <span className="text-[9px] text-secondary-text font-bold uppercase tracking-wider">Total</span>
+          <span className="text-xs font-black text-primary-text">₹{(total).toLocaleString()}</span>
         </div>
       </div>
       
-      <div className="flex-1 flex flex-col gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-3 h-3 rounded-full bg-primary-maroon shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-secondary-text font-bold uppercase">Members</span>
-            <span className="text-xs font-black text-primary-text truncate">
-              ₹{contributions.toLocaleString()} ({cPercent.toFixed(0)}%)
-            </span>
+      <div className="flex-1 flex flex-col gap-2.5">
+        {/* Members row */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-full bg-primary-maroon shrink-0 animate-pulse" />
+              <span className="font-bold text-secondary-text uppercase truncate">Committee</span>
+            </div>
+            <span className="font-extrabold text-primary-text">₹{contributions.toLocaleString()}</span>
+          </div>
+          <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden mt-0.5">
+            <div className="h-full bg-primary-maroon rounded-full transition-all duration-500" style={{ width: `${cPercent}%` }} />
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="w-3 h-3 rounded-full bg-antique-gold shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-secondary-text font-bold uppercase">Sponsors</span>
-            <span className="text-xs font-black text-primary-text truncate">
-              ₹{sponsorships.toLocaleString()} ({sPercent.toFixed(0)}%)
-            </span>
+
+        {/* Sponsors row */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-full bg-antique-gold shrink-0 animate-pulse" />
+              <span className="font-bold text-secondary-text uppercase truncate">Sponsors</span>
+            </div>
+            <span className="font-extrabold text-primary-text">₹{sponsorships.toLocaleString()}</span>
+          </div>
+          <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden mt-0.5">
+            <div className="h-full bg-antique-gold rounded-full transition-all duration-500" style={{ width: `${sPercent}%` }} />
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="w-3 h-3 rounded-full bg-soft-teal shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-secondary-text font-bold uppercase">Public</span>
-            <span className="text-xs font-black text-primary-text truncate">
-              ₹{chandhalu.toLocaleString()} ({chPercent.toFixed(0)}%)
-            </span>
+
+        {/* Public row */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-full bg-soft-teal shrink-0 animate-pulse" />
+              <span className="font-bold text-secondary-text uppercase truncate">Public</span>
+            </div>
+            <span className="font-extrabold text-primary-text">₹{chandhalu.toLocaleString()}</span>
+          </div>
+          <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden mt-0.5">
+            <div className="h-full bg-soft-teal rounded-full transition-all duration-500" style={{ width: `${chPercent}%` }} />
           </div>
         </div>
       </div>

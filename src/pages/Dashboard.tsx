@@ -11,7 +11,6 @@ import {
   Users, 
   TrendingUp, 
   ChevronRight,
-  HandCoins,
   Receipt
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
@@ -50,9 +49,6 @@ export const Dashboard: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [recentFeed, setRecentFeed] = useState<ContributionFeedItem[]>([]);
-  const [membersCount, setMembersCount] = useState(24);
-  const [contributorsCount, setContributorsCount] = useState(24);
-  const [eventsCount, setEventsCount] = useState(3);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
@@ -80,15 +76,13 @@ export const Dashboard: React.FC = () => {
           ? `${API_BASE_URL}/api/finance/summary?year=${selectedYear}`
           : `${API_BASE_URL}/api/finance/summary?year=-1`;
 
-        // Fetch metrics in parallel using Promise.all for 4x speed improvement
-        const [summaryRes, feedRes, membersRes, eventsRes] = await Promise.all([
+        // Fetch metrics in parallel using Promise.all
+        const [summaryRes, feedRes] = await Promise.all([
           fetch(summaryUrl, { headers }),
-          fetch(`${API_BASE_URL}/api/committee/contributions`, { headers }),
-          fetch(`${API_BASE_URL}/api/committee/members`, { headers }),
-          fetch(`${API_BASE_URL}/api/public/events`)
+          fetch(`${API_BASE_URL}/api/committee/contributions`, { headers })
         ]);
 
-        if (summaryRes.status === 401 || feedRes.status === 401 || membersRes.status === 401) {
+        if (summaryRes.status === 401 || feedRes.status === 401) {
           logout();
           return;
         }
@@ -104,24 +98,6 @@ export const Dashboard: React.FC = () => {
             return matchesYear && !c.member_id;
           });
           setRecentFeed(filteredFeed.slice(0, 4));
-
-          // Set counts
-          if (membersRes.ok) {
-            const mData = await membersRes.json();
-            setMembersCount(mData.length);
-          }
-          if (eventsRes.ok) {
-            const eData = await eventsRes.json();
-            const thisMonth = new Date().getMonth();
-            const monthly = eData.filter((e: any) => {
-              const d = new Date(e.date);
-              return d.getMonth() === thisMonth && (selectedYear > 0 ? d.getFullYear() === selectedYear : true);
-            });
-            setEventsCount(monthly.length || eData.length || 3);
-          }
-
-          const uniqueC = new Set(filteredFeed.filter((c: any) => c.status === 'PAID').map((c: any) => c.contributor_id || c.name));
-          setContributorsCount(uniqueC.size || 0);
 
           setError(null);
         } else {
@@ -241,13 +217,27 @@ export const Dashboard: React.FC = () => {
 
         {/* Luxury Animated TEAM GARUDA Banner */}
         <div className="relative overflow-hidden bg-gradient-to-br from-primary-maroon via-[#3d0303] to-[#120000] border-2 border-antique-gold/30 rounded-3xl p-6 shadow-xl flex flex-col justify-center items-center text-center group min-h-[120px]">
+          {/* Background Video (Falls back to gradient overlay if video fails or not provided) */}
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          >
+            <source src="/assets/video.mp4" type="video/mp4" />
+          </video>
+
           {/* Shimmer / Glow Animation overlays */}
-          <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0)_0%,rgba(255,215,0,0.1)_45%,rgba(255,215,0,0.2)_50%,rgba(255,215,0,0.1)_55%,rgba(255,255,255,0)_100%)] bg-[length:200%_100%] animate-shimmer pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0)_0%,rgba(255,215,0,0.1)_45%,rgba(255,215,0,0.2)_50%,rgba(255,215,0,0.1)_55%,rgba(255,255,255,0)_100%)] bg-[length:200%_100%] animate-shimmer pointer-events-none z-10" />
           
           {/* Subtle elegant design accents */}
-          <div className="absolute top-2 left-2 right-2 bottom-2 border border-antique-gold/10 rounded-2xl pointer-events-none" />
+          <div className="absolute top-2 left-2 right-2 bottom-2 border border-antique-gold/10 rounded-2xl pointer-events-none z-10" />
           
-          <div className="z-10">
+          <div className="z-10 relative">
             <h1 className="text-xl sm:text-2xl font-serif font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-light-gold via-antique-gold to-[#fff6c5] drop-shadow-md uppercase animate-pulse">
               Team Garuda
             </h1>
@@ -339,41 +329,15 @@ export const Dashboard: React.FC = () => {
                 <span className="text-[9px] font-bold text-secondary-text uppercase block">Total Collection</span>
                 <span className="text-lg font-black text-primary-text mt-0.5 block">₹{summary.total_funds.toLocaleString()}</span>
               </div>
-            </div>
-
-            {/* 2. TOTAL CONTRIBUTORS */}
+            </div>            {/* 2. TOTAL EXPENSES */}
             <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between h-28">
-              <div className="flex items-center justify-between text-antique-gold">
-                <HandCoins className="w-4 h-4" />
+              <div className="flex items-center justify-between text-error">
+                <Receipt className="w-4.5 h-4.5" />
                 <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-full">Ledger</span>
               </div>
               <div className="mt-2">
-                <span className="text-[9px] font-bold text-secondary-text uppercase block">Total Contributors</span>
-                <span className="text-lg font-black text-primary-text mt-0.5 block">{contributorsCount}</span>
-              </div>
-            </div>
-
-            {/* 3. ACTIVE MEMBERS */}
-            <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between h-28">
-              <div className="flex items-center justify-between text-antique-gold">
-                <Users className="w-4 h-4" />
-                <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-full">Members</span>
-              </div>
-              <div className="mt-2">
-                <span className="text-[9px] font-bold text-secondary-text uppercase block">Active Members</span>
-                <span className="text-lg font-black text-primary-text mt-0.5 block">{membersCount}</span>
-              </div>
-            </div>
-
-            {/* 4. EVENTS THIS MONTH */}
-            <div className="bg-white border border-border-custom p-4 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between h-28">
-              <div className="flex items-center justify-between text-antique-gold">
-                <Calendar className="w-4 h-4" />
-                <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-full">Events</span>
-              </div>
-              <div className="mt-2">
-                <span className="text-[9px] font-bold text-secondary-text uppercase block">Events This Month</span>
-                <span className="text-lg font-black text-primary-text mt-0.5 block">{eventsCount}</span>
+                <span className="text-[9px] font-bold text-secondary-text uppercase block">Total Expenses</span>
+                <span className="text-lg font-black text-error mt-0.5 block">₹{summary.total_expenses.toLocaleString()}</span>
               </div>
             </div>
           </div>

@@ -34,6 +34,11 @@ interface ExpenseItem {
     id: number;
     name: string;
   };
+  paid_by_user?: {
+    id: number;
+    username: string;
+    email: string;
+  } | null;
 }
 
 interface EventItem {
@@ -56,12 +61,14 @@ export const Expenses: React.FC = () => {
   const { token, logout } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   // Search filter query
   const [searchQuery, setSearchQuery] = useState('');
+  const [ePaidBy, setEPaidBy] = useState('');
 
   // Sheet & Form States
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -84,10 +91,11 @@ export const Expenses: React.FC = () => {
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      // Fetch expenses and events in parallel using Promise.all for 2x speed improvement
-      const [res, eventsRes] = await Promise.all([
+      // Fetch expenses, events, and users in parallel using Promise.all
+      const [res, eventsRes, usersRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/committee/expenses`, { headers }),
-        fetch(`${API_BASE_URL}/api/public/events`)
+        fetch(`${API_BASE_URL}/api/public/events`),
+        fetch(`${API_BASE_URL}/api/committee/users`, { headers })
       ]);
 
       if (res.status === 401) {
@@ -100,6 +108,9 @@ export const Expenses: React.FC = () => {
       }
       if (eventsRes.ok) {
         setEvents(await eventsRes.json());
+      }
+      if (usersRes.ok) {
+        setUsersList(await usersRes.json());
       }
     } catch (err) {
       console.error('Error fetching expenses:', err);
@@ -122,6 +133,7 @@ export const Expenses: React.FC = () => {
     setEEventId(events.length > 0 ? String(events[0].id) : '');
     setENotes('');
     setEReceipt(null);
+    setEPaidBy('');
     setIsSheetOpen(true);
   };
 
@@ -149,6 +161,7 @@ export const Expenses: React.FC = () => {
       if (eEventId) formData.append('event_id', eEventId);
       if (eNotes.trim()) formData.append('notes', eNotes.trim());
       if (eReceipt) formData.append('receipt', eReceipt);
+      if (ePaidBy) formData.append('paid_by_id', ePaidBy);
 
       const res = await fetch(`${API_BASE_URL}/api/committee/expenses`, {
         method: 'POST',
@@ -361,6 +374,11 @@ export const Expenses: React.FC = () => {
                 {item.notes && (
                   <p className="text-[10px] text-secondary-text italic line-clamp-1 mt-0.5">{item.notes}</p>
                 )}
+                {item.paid_by_user && (
+                  <span className="text-[8px] text-secondary-text font-bold bg-secondary-bg px-1.5 py-0.5 rounded w-fit block mt-1">
+                    Paid By: {item.paid_by_user.username}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -496,6 +514,20 @@ export const Expenses: React.FC = () => {
               rows={2}
               className="w-full bg-secondary-bg/60 border border-border-custom rounded-xl px-4 py-2.5 text-xs text-primary-text focus:outline-none focus:border-primary-maroon font-medium"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Spent By (Who Paid)</label>
+            <select
+              value={ePaidBy}
+              onChange={e => setEPaidBy(e.target.value)}
+              className="w-full bg-secondary-bg/60 border border-border-custom rounded-xl px-3 py-2.5 text-xs text-primary-text font-semibold focus:outline-none focus:border-primary-maroon cursor-pointer"
+            >
+              <option value="">-- Current Logged-in User --</option>
+              {usersList.map(u => (
+                <option key={u.id} value={u.id}>{u.username}</option>
+              ))}
+            </select>
           </div>
 
           {formError && (
