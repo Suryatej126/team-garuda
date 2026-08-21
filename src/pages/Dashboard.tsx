@@ -228,7 +228,7 @@ export const Dashboard: React.FC = () => {
               (e.target as HTMLElement).style.display = 'none';
             }}
           >
-            <source src="/assets/video.mp4" type="video/mp4" />
+            <source src="/video.mp4" type="video/mp4" />
           </video>
 
           {/* Shimmer / Glow Animation overlays */}
