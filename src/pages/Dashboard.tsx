@@ -43,7 +43,7 @@ interface ContributionFeedItem {
 }
 
 export const Dashboard: React.FC = () => {
-  const { user, token, logout } = useAuth();
+  const { token, logout } = useAuth();
   const navigate = useNavigate();
 
   const [selectedYear, setSelectedYear] = useState<number>(2026);
@@ -52,13 +52,6 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
-
-  const getGreeting = () => {
-    const hr = new Date().getHours();
-    if (hr < 12) return 'Good Morning';
-    if (hr < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
 
   const todayDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -192,9 +185,8 @@ export const Dashboard: React.FC = () => {
             <Menu className="w-5 h-5" />
           </button>
           <div>
-            <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">{getGreeting()}</span>
-            <h2 className="text-xl font-bold tracking-wide text-primary-maroon font-serif mt-0.5 truncate max-w-[200px]">
-              {user?.username?.toUpperCase() || 'TEAM GARUDA'}
+            <h2 className="text-sm font-black tracking-[0.15em] text-primary-maroon font-serif uppercase">
+              Team Garuda
             </h2>
           </div>
         </div>

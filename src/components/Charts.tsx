@@ -322,10 +322,98 @@ export const LineChart: React.FC<LineChartProps> = ({ data }) => {
 };
 
 export const ExpenseByCategoryChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
-  const chartData = Object.entries(data).map(([category, amount]) => ({
+  const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  if (total === 0) return null;
+
+  const categories = Object.entries(data).map(([category, amount]) => ({
     category,
     amount
   }));
-  return <CategoryBars data={chartData} />;
+
+  // Curated elegant palette for expense categories
+  const colors = [
+    '#6E1F24', // Velvet Maroon
+    '#C99A4A', // Antique Gold
+    '#17665F', // Soft Teal
+    '#3b82f6', // Bright Blue
+    '#a855f7', // Purple
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#10b981', // Emerald Green
+  ];
+
+  // SVG parameters
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+
+  let accumulatedPercent = 0;
+
+  return (
+    <div className="flex flex-col gap-4 bg-white border border-border-custom p-4.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-6">
+        <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+            {/* Base circle */}
+            <circle cx="60" cy="60" r={radius} className="stroke-secondary-bg fill-none" strokeWidth="11" />
+            
+            {categories.map((item, idx) => {
+              const percent = (item.amount / total) * 100;
+              const strokeDash = `${(percent / 100) * circumference} ${circumference}`;
+              const strokeOffset = -((accumulatedPercent / 100) * circumference);
+              accumulatedPercent += percent;
+              const color = colors[idx % colors.length];
+
+              return (
+                <circle
+                  key={idx}
+                  cx="60"
+                  cy="60"
+                  r={radius}
+                  stroke={color}
+                  className="fill-none transition-all duration-500"
+                  strokeWidth="11"
+                  strokeDasharray={strokeDash}
+                  strokeDashoffset={strokeOffset}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+          <div className="absolute flex flex-col items-center justify-center">
+            <span className="text-[9px] text-secondary-text font-bold uppercase tracking-wider">Spent</span>
+            <span className="text-xs font-black text-error">₹{total.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col gap-2.5 max-h-[140px] overflow-y-auto no-scrollbar">
+          {categories.map((item, idx) => {
+            const percent = (item.amount / total) * 100;
+            const color = colors[idx % colors.length];
+            return (
+              <div key={idx} className="flex flex-col gap-0.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <span className="font-bold text-secondary-text uppercase truncate">
+                      {item.category.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <span className="font-extrabold text-primary-text">
+                    ₹{item.amount.toLocaleString()} ({percent.toFixed(0)}%)
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden mt-0.5">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500" 
+                    style={{ backgroundColor: color, width: `${percent}%` }} 
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 };
 

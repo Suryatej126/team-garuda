@@ -130,7 +130,12 @@ export const Expenses: React.FC = () => {
     setEDate(new Date().toISOString().split('T')[0]);
     setECategory('FOOD');
     setEMethod('UPI');
-    setEEventId(events.length > 0 ? String(events[0].id) : '');
+    // Default event to Vinayaka Chavithi matching selectedYear, otherwise fallback to events[0]
+    const defaultEvent = events.find(ev => 
+      ev.name.toLowerCase().includes('vinayaka') && 
+      (selectedYear > 0 ? ev.name.includes(String(selectedYear)) : true)
+    ) || events[0];
+    setEEventId(defaultEvent ? String(defaultEvent.id) : '');
     setENotes('');
     setEReceipt(null);
     setEPaidBy('');
