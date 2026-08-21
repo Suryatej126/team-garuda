@@ -209,7 +209,9 @@ export const Dashboard: React.FC = () => {
           </button>
           <div>
             <span className="text-[10px] text-secondary-text font-bold uppercase tracking-wider">{getGreeting()}</span>
-            <h2 className="text-xl font-bold tracking-wide text-primary-maroon font-serif mt-0.5">TEAM GARUDA</h2>
+            <h2 className="text-xl font-bold tracking-wide text-primary-maroon font-serif mt-0.5 truncate max-w-[200px]">
+              {user?.username?.toUpperCase() || 'TEAM GARUDA'}
+            </h2>
           </div>
         </div>
         <div className="flex items-center gap-2">

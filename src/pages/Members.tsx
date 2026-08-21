@@ -89,7 +89,6 @@ export const Members: React.FC = () => {
   const [transactionId, setTransactionId] = useState('');
   const [eventId, setEventId] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const [selectedContributorId, setSelectedContributorId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -161,7 +160,6 @@ export const Members: React.FC = () => {
   // Handle Autocomplete Suggestions
   const handleNameChange = (val: string) => {
     setContributorName(val);
-    setSelectedMemberId(null);
     setSelectedContributorId(null);
 
     if (val.trim().length < 2) {
@@ -172,23 +170,10 @@ export const Members: React.FC = () => {
 
     const filteredSuggestions: typeof nameSuggestions = [];
 
-    // Search members
-    members.forEach(m => {
-      if (m.name.toLowerCase().includes(val.toLowerCase())) {
-        filteredSuggestions.push({
-          type: 'member',
-          id: m.id,
-          name: m.name,
-          phone: m.phone,
-          tag: m.member_id
-        });
-      }
-    });
-
-    // Search contributors
+    // Search contributors (excluding those associated with committee members)
     contributors.forEach(c => {
-      if (c.name.toLowerCase().includes(val.toLowerCase()) && 
-          !filteredSuggestions.some(s => s.type === 'member' && s.name.toLowerCase() === c.name.toLowerCase())) {
+      const isMember = members.some(m => m.name.toLowerCase() === c.name.toLowerCase() || (c.phone && m.phone === c.phone));
+      if (!isMember && c.name.toLowerCase().includes(val.toLowerCase())) {
         filteredSuggestions.push({
           type: 'contributor',
           id: c.id,
@@ -205,13 +190,7 @@ export const Members: React.FC = () => {
   const selectSuggestion = (s: typeof nameSuggestions[0]) => {
     setContributorName(s.name);
     setContributorPhone(s.phone || '');
-    if (s.type === 'member') {
-      setSelectedMemberId(s.id);
-      setSelectedContributorId(null);
-    } else {
-      setSelectedContributorId(s.id);
-      setSelectedMemberId(null);
-    }
+    setSelectedContributorId(s.id);
     setShowSuggestions(false);
   };
 
@@ -226,7 +205,6 @@ export const Members: React.FC = () => {
     setTransactionId('');
     setEventId('');
     setNotes('');
-    setSelectedMemberId(null);
     setSelectedContributorId(null);
     setFormError('');
     setIsFormSheetOpen(true);
@@ -242,7 +220,6 @@ export const Members: React.FC = () => {
     setTransactionId(c.transaction_id || '');
     setEventId(c.event_id?.toString() || '');
     setNotes(c.notes || '');
-    setSelectedMemberId(c.member_id);
     setSelectedContributorId(c.contributor_id);
     setFormError('');
     setIsFormSheetOpen(true);
@@ -272,7 +249,7 @@ export const Members: React.FC = () => {
       
       const method = editingContribution ? 'PUT' : 'POST';
       const bodyPayload = {
-        member_id: selectedMemberId,
+        member_id: null, // Forces this as a public donation (Chandha)
         contributor_id: selectedContributorId,
         contributor_name: contributorName.trim(),
         contributor_phone: contributorPhone.trim() || null,
@@ -580,6 +557,9 @@ export const Members: React.FC = () => {
 
   // Filter contributions by selected year, search, event, payment method
   const filteredContributions = contributions.filter(c => {
+    // Exclude committee member contributions (only show general public donations)
+    if (c.member_id !== null) return false;
+
     // Year filter (from Contribution.date)
     const cYear = new Date(c.date).getFullYear();
     const matchesYear = cYear === selectedYear;

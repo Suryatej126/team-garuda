@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Trash2, Plus, Gift, Edit2, CheckCircle2, Clock } from 'lucide-react';
+import { Trash2, Plus, Gift, Edit2, CheckCircle2, Clock, Search } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface Member {
@@ -61,6 +61,12 @@ export const Finance: React.FC = () => {
   // Year Filter
   const [selectedYear, setSelectedYear] = useState<number>(2026);
 
+  // Stats and Search/Filter States
+  const [summary, setSummary] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('ALL');
+  const [amountRange, setAmountRange] = useState<'ALL' | 'UNDER_500' | '500_1000' | '1000_5000' | 'OVER_5000'>('ALL');
+
   // Form Bottom Sheet state (Add / Edit)
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -102,6 +108,11 @@ export const Finance: React.FC = () => {
       const contribsRes = await fetch(`${API_BASE_URL}/api/committee/contributions`, { headers });
       const sponsRes = await fetch(`${API_BASE_URL}/api/committee/sponsorships`, { headers });
       const chandhaRes = await fetch(`${API_BASE_URL}/api/committee/chandhalu`, { headers });
+      
+      const summaryUrl = selectedYear > 0 
+        ? `${API_BASE_URL}/api/finance/summary?year=${selectedYear}`
+        : `${API_BASE_URL}/api/finance/summary?year=-1`;
+      const summaryRes = await fetch(summaryUrl, { headers });
 
       if (contribsRes.status === 401 || sponsRes.status === 401 || chandhaRes.status === 401) {
         logout();
@@ -111,6 +122,7 @@ export const Finance: React.FC = () => {
       if (contribsRes.ok) setContributions(await contribsRes.json());
       if (sponsRes.ok) setSponsorships(await sponsRes.json());
       if (chandhaRes.ok) setChandhalu(await chandhaRes.json());
+      if (summaryRes.ok) setSummary(await summaryRes.json());
     } catch (err) {
       console.error('Error fetching financial records:', err);
     } finally {
@@ -137,7 +149,14 @@ export const Finance: React.FC = () => {
   useEffect(() => {
     fetchFinanceData();
     fetchMeta();
-  }, [token, activeTab]);
+  }, [token, activeTab, selectedYear]);
+
+  // Reset filters on tab switch
+  useEffect(() => {
+    setSearchQuery('');
+    setPaymentMethodFilter('ALL');
+    setAmountRange('ALL');
+  }, [activeTab]);
 
   // Open Sheet for CREATE
   const openAddSheet = () => {
@@ -479,6 +498,169 @@ export const Finance: React.FC = () => {
         </div>
       </div>
 
+      {/* 4. MINI DASHBOARD WIDGET */}
+      {summary && (
+        <div className="px-5 py-3 shrink-0 flex flex-col gap-3">
+          <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest block -mb-1">
+            Ledger Overview ({selectedYear === 0 ? 'All Time' : selectedYear})
+          </span>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total Income */}
+            <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Total Income</span>
+              <div className="mt-1">
+                <span className="text-[10px] font-black text-primary-text block">
+                  ₹{summary.total_funds.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Current Balance */}
+            <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex flex-col justify-between h-[74px]">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-secondary-text bg-secondary-bg px-1.5 py-0.5 rounded-md self-start">Balance</span>
+              <div className="mt-1">
+                <span className="text-[10px] font-black text-primary-text block">
+                  ₹{summary.current_balance.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-border-custom rounded-2xl p-3 shadow-sm flex items-center justify-between text-center divide-x divide-border-custom/50">
+            {activeTab === 'CONTRIBUTIONS' && (() => {
+              const activeYrContribs = contributions.filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true));
+              const totalPledge = activeYrContribs.reduce((sum, item) => sum + parseCommitteeDetails(item).totalPledge, 0);
+              const totalGiven = activeYrContribs.reduce((sum, item) => sum + parseCommitteeDetails(item).givenAmount, 0);
+              const totalPending = activeYrContribs.reduce((sum, item) => sum + parseCommitteeDetails(item).pendingAmount, 0);
+              return (
+                <>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Total Pledge</span>
+                    <span className="text-xs font-black text-primary-text">₹{totalPledge.toLocaleString()}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Collected</span>
+                    <span className="text-xs font-black text-success">₹{totalGiven.toLocaleString()}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Pending</span>
+                    <span className="text-xs font-black text-error">₹{totalPending.toLocaleString()}</span>
+                  </div>
+                </>
+              );
+            })()}
+
+            {activeTab === 'SPONSORSHIPS' && (() => {
+              const activeYrSpons = sponsorships.filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true));
+              const totalSponsors = activeYrSpons.length;
+              const totalValue = activeYrSpons.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+              return (
+                <>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Total Sponsors</span>
+                    <span className="text-xs font-black text-primary-text">{totalSponsors}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Total Value</span>
+                    <span className="text-xs font-black text-antique-gold">₹{totalValue.toLocaleString()}</span>
+                  </div>
+                </>
+              );
+            })()}
+
+            {activeTab === 'CHANDHALU' && (() => {
+              const activeYrChandha = chandhalu.filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true));
+              const totalDonors = activeYrChandha.length;
+              const totalCollected = activeYrChandha.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+              return (
+                <>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Total Donors</span>
+                    <span className="text-xs font-black text-primary-text">{totalDonors}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider">Total Collected</span>
+                    <span className="text-xs font-black text-success">₹{totalCollected.toLocaleString()}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* 5. SEARCH & FILTER CONTROLS */}
+      <div className="px-5 py-2.5 shrink-0 bg-white/70 border-b border-border-custom flex flex-col gap-2.5 sticky top-[138px] z-20 backdrop-blur-md">
+        {/* Search Input */}
+        <div className="relative">
+          <input 
+            type="text"
+            placeholder={
+              activeTab === 'CONTRIBUTIONS' 
+                ? "Search by name or notes..." 
+                : activeTab === 'SPONSORSHIPS' 
+                ? "Search by sponsor, item or payment method..." 
+                : "Search by donor name, phone or payment method..."
+            }
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-border-custom rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary-maroon font-semibold text-primary-text placeholder:text-secondary-text/50"
+          />
+          <Search className="w-3.5 h-3.5 text-secondary-text absolute left-3 top-2.5" />
+        </div>
+
+        {/* Filter Pills Row */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider shrink-0 mr-1">Method:</span>
+          {['ALL', 'UPI', 'CASH', 'BANK_TRANSFER', 'IN_KIND'].map(method => {
+            // Hide IN_KIND for contributions/chandhalu as it's typically only sponsorships
+            if (method === 'IN_KIND' && activeTab !== 'SPONSORSHIPS') return null;
+            return (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setPaymentMethodFilter(method)}
+                className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold border shrink-0 cursor-pointer transition-all ${
+                  paymentMethodFilter === method
+                    ? 'bg-primary-maroon text-white border-primary-maroon'
+                    : 'bg-white border-border-custom text-secondary-text hover:bg-secondary-bg/50'
+                }`}
+              >
+                {method === 'ALL' ? 'All' : method.replace('_', ' ')}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Amount filter pills specifically for Public Donations (CHANDHALU) */}
+        {activeTab === 'CHANDHALU' && (
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider shrink-0 mr-1">Amount:</span>
+            {([
+              { id: 'ALL', label: 'All' },
+              { id: 'UNDER_500', label: 'Under ₹500' },
+              { id: '500_1000', label: '₹500 - ₹1K' },
+              { id: '1000_5000', label: '₹1K - ₹5K' },
+              { id: 'OVER_5000', label: '₹5K+' }
+            ] as const).map(range => (
+              <button
+                key={range.id}
+                type="button"
+                onClick={() => setAmountRange(range.id)}
+                className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold border shrink-0 cursor-pointer transition-all ${
+                  amountRange === range.id
+                    ? 'bg-antique-gold text-white border-antique-gold'
+                    : 'bg-white border-border-custom text-secondary-text hover:bg-secondary-bg/50'
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Ledger lists */}
       {loading ? (
         <div className="flex-grow flex flex-col justify-center items-center py-16">
@@ -488,205 +670,247 @@ export const Finance: React.FC = () => {
         <div className="px-5 pt-4 flex flex-col gap-3">
           
           {/* 1. COMMITTEE CONTRIBUTIONS LIST with Given & Pending tracking and CRUD */}
-          {activeTab === 'CONTRIBUTIONS' && (
-            <>
-              {contributions
-                .filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true)).length === 0 ? (
+          {activeTab === 'CONTRIBUTIONS' && (() => {
+            const filtered = contributions
+              .filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+              .filter(item => {
+                const query = searchQuery.toLowerCase().trim();
+                const matchesSearch = !query || 
+                  item.member?.name?.toLowerCase().includes(query) ||
+                  item.member?.member_id?.toLowerCase().includes(query) ||
+                  (item.notes && item.notes.toLowerCase().includes(query));
+                
+                const matchesPayment = paymentMethodFilter === 'ALL' || item.payment_method === paymentMethodFilter;
+                return matchesSearch && matchesPayment;
+              });
+            return (
+              <>
+                {filtered.length === 0 ? (
                   <div className="text-center p-8 bg-white border border-border-custom rounded-2xl text-xs text-secondary-text">
-                    No committee contributions recorded for {selectedYear === 0 ? 'All Time' : selectedYear}.
+                    No matching committee contributions found.
                   </div>
                 ) : (
-                  contributions
-                    .filter(item => item.member_id !== null && (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
-                    .map(item => {
-                      const { givenAmount, pendingAmount, totalPledge, cleanNotes } = parseCommitteeDetails(item);
-                      return (
-                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
-                          
-                          {/* Top Row: Member Name, ID, Actions */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-8 h-8 rounded-xl bg-primary-maroon/10 text-primary-maroon flex items-center justify-center font-bold text-xs">
-                                {item.member?.name?.charAt(0) || 'M'}
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-xs font-black text-primary-text truncate">{item.member?.name || 'Unknown Member'}</h4>
-                                <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium flex-wrap">
-                                  <span className="font-mono text-antique-gold font-bold">{item.member?.member_id}</span>
-                                  <span>•</span>
-                                  <span>Pledge: ₹{totalPledge.toLocaleString()}</span>
-                                  <span>•</span>
-                                  <span>{item.date}</span>
-                                  <span>•</span>
-                                  <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">{item.payment_method}</span>
-                                </div>
-                              </div>
+                  filtered.map(item => {
+                    const { givenAmount, pendingAmount, totalPledge, cleanNotes } = parseCommitteeDetails(item);
+                    return (
+                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+                        
+                        {/* Top Row: Member Name, ID, Actions */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-primary-maroon/10 text-primary-maroon flex items-center justify-center font-bold text-xs">
+                              {item.member?.name?.charAt(0) || 'M'}
                             </div>
-
-                            {/* CRUD Action Buttons */}
-                            <div className="flex items-center gap-1">
-                              <button 
-                                onClick={() => openEditCommittee(item)}
-                                className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
-                                title="Edit Contribution"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete('CONTRIBUTION', item.id)}
-                                className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-primary-text truncate">{item.member?.name || 'Unknown Member'}</h4>
+                              <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium flex-wrap">
+                                <span className="font-mono text-antique-gold font-bold">{item.member?.member_id}</span>
+                                <span>•</span>
+                                <span>Pledge: ₹{totalPledge.toLocaleString()}</span>
+                                <span>•</span>
+                                <span>{item.date}</span>
+                                <span>•</span>
+                                <span className="font-mono text-[8px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text font-extrabold">{item.payment_method}</span>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Middle Row: Given Amount vs Pending Amount Grid */}
-                          <div className="grid grid-cols-2 gap-2 bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/60">
-                            {/* Given / Paid */}
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-success" />
-                                <span>Given Amount</span>
-                              </span>
-                              <span className="text-sm font-black text-success mt-0.5">₹{givenAmount.toLocaleString()}</span>
-                            </div>
-
-                            {/* Pending / Due */}
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-antique-gold" />
-                                <span>Pending Amount</span>
-                              </span>
-                              {pendingAmount > 0 ? (
-                                <span className="text-sm font-black text-error mt-0.5">₹{pendingAmount.toLocaleString()}</span>
-                              ) : (
-                                <span className="text-xs font-bold text-success mt-0.5">✓ Cleared (₹0)</span>
-                              )}
-                            </div>
+                          {/* CRUD Action Buttons */}
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => openEditCommittee(item)}
+                              className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
+                              title="Edit Contribution"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete('CONTRIBUTION', item.id)}
+                              className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-
-                          {/* Notes if any */}
-                          {cleanNotes && (
-                            <p className="text-[10px] text-secondary-text italic line-clamp-1 -mt-1">{cleanNotes}</p>
-                          )}
                         </div>
-                      );
-                    })
+
+                        {/* Middle Row: Given Amount vs Pending Amount Grid */}
+                        <div className="grid grid-cols-2 gap-2 bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/60">
+                          {/* Given / Paid */}
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-success" />
+                              <span>Given Amount</span>
+                            </span>
+                            <span className="text-sm font-black text-success mt-0.5">₹{givenAmount.toLocaleString()}</span>
+                          </div>
+
+                          {/* Pending Amount */}
+                          <div className="flex flex-col border-l border-border-custom/80 pl-3">
+                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-warning" />
+                              <span>Pending Amount</span>
+                            </span>
+                            {pendingAmount > 0 ? (
+                              <span className="text-sm font-black text-error mt-0.5">₹{pendingAmount.toLocaleString()}</span>
+                            ) : (
+                              <span className="text-xs font-bold text-success mt-0.5">✓ Cleared (₹0)</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Notes if any */}
+                        {cleanNotes && (
+                          <p className="text-[10px] text-secondary-text italic line-clamp-1 -mt-1">{cleanNotes}</p>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {/* 2. ITEM SPONSORSHIPS LIST - Item Name & Sponsor Highlighted, Price Minimized */}
-          {activeTab === 'SPONSORSHIPS' && (
-            <>
-              {sponsorships
-                .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true)).length === 0 ? (
+          {activeTab === 'SPONSORSHIPS' && (() => {
+            const filtered = sponsorships
+              .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+              .filter(item => {
+                const query = searchQuery.toLowerCase().trim();
+                const { sponsorName, itemName, extraNotes } = parseSponsorDetails(item);
+                const matchesSearch = !query || 
+                  sponsorName.toLowerCase().includes(query) ||
+                  itemName.toLowerCase().includes(query) ||
+                  extraNotes.toLowerCase().includes(query);
+                
+                const matchesPayment = paymentMethodFilter === 'ALL' || item.payment_method === paymentMethodFilter;
+                return matchesSearch && matchesPayment;
+              });
+            return (
+              <>
+                {filtered.length === 0 ? (
                   <div className="text-center p-8 bg-white border border-border-custom rounded-2xl text-xs text-secondary-text">
-                    No item sponsorships recorded for {selectedYear === 0 ? 'All Time' : selectedYear}.
+                    No matching item sponsorships found.
                   </div>
                 ) : (
-                  sponsorships
-                    .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
-                    .map(item => {
-                      const { sponsorName, sponsorPhone, itemName, extraNotes } = parseSponsorDetails(item);
-                      return (
-                        <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-2.5 shadow-sm hover:shadow-md transition-shadow">
-                          
-                          {/* Top Header: HIGHLIGHTED ITEM NAME with Gift Icon */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-8 h-8 rounded-xl bg-antique-gold/15 text-antique-gold flex items-center justify-center shrink-0">
-                                <Gift className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <h3 className="text-sm font-black text-primary-maroon tracking-wide truncate uppercase font-serif">
-                                  {itemName}
-                                </h3>
-                                <span className="text-[9px] font-bold text-secondary-text uppercase">Item Sponsored</span>
-                              </div>
+                  filtered.map(item => {
+                    const { sponsorName, sponsorPhone, itemName, extraNotes } = parseSponsorDetails(item);
+                    return (
+                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-2.5 shadow-sm hover:shadow-md transition-shadow">
+                        
+                        {/* Top Header: HIGHLIGHTED ITEM NAME with Gift Icon */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-antique-gold/15 text-antique-gold flex items-center justify-center shrink-0">
+                              <Gift className="w-4 h-4" />
                             </div>
-
-                            {/* Actions (Edit & Delete) */}
-                            <div className="flex items-center gap-1">
-                              <button 
-                                onClick={() => openEditSponsorship(item)}
-                                className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
-                                title="Edit Sponsorship"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete('SPONSORSHIP', item.id)}
-                                className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-black text-primary-maroon tracking-wide truncate uppercase font-serif">
+                                {itemName}
+                              </h3>
+                              <span className="text-[9px] font-bold text-secondary-text uppercase">Item Sponsored</span>
                             </div>
                           </div>
 
-                          {/* Sponsor Info (Prominent Name) */}
-                          <div className="flex items-center justify-between bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/50 flex-wrap gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Sponsor Name</span>
-                              <span className="text-xs font-black text-primary-text mt-0.5">{sponsorName}</span>
-                              {sponsorPhone && (
-                                <span className="text-[10px] font-mono text-success font-bold mt-0.5">{sponsorPhone}</span>
-                              )}
-                            </div>
-
-                            {/* Compact Minimized Price & Mode */}
-                            <div className="flex flex-col items-end">
-                              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Est. Value</span>
-                              {Number(item.amount) > 0 ? (
-                                <span className="text-xs font-bold text-secondary-text font-mono mt-0.5">₹{Number(item.amount).toLocaleString()}</span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-antique-gold mt-0.5">In-Kind Material</span>
-                              )}
-                              <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-white border border-border-custom text-primary-maroon uppercase mt-1">
-                                {item.payment_method === 'IN_KIND' ? 'In-Kind Item' : item.payment_method}
-                              </span>
-                            </div>
+                          {/* Actions (Edit & Delete) */}
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => openEditSponsorship(item)}
+                              className="p-1.5 rounded-lg text-secondary-text hover:text-primary-maroon hover:bg-secondary-bg active:scale-90 cursor-pointer transition-colors"
+                              title="Edit Sponsorship"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete('SPONSORSHIP', item.id)}
+                              className="p-1.5 rounded-lg text-secondary-text hover:text-error hover:bg-error/10 active:scale-90 cursor-pointer transition-colors"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-
-                          {/* Notes / Remarks */}
-                          {extraNotes && (
-                            <p className="text-[10px] text-secondary-text italic line-clamp-1">{extraNotes}</p>
-                          )}
                         </div>
-                      );
-                    })
+
+                        {/* Sponsor Info (Prominent Name) */}
+                        <div className="flex items-center justify-between bg-secondary-bg/50 p-2.5 rounded-xl border border-border-custom/50 flex-wrap gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Sponsor Name</span>
+                            <span className="text-xs font-black text-primary-text mt-0.5">{sponsorName}</span>
+                            {sponsorPhone && (
+                              <span className="text-[10px] font-mono text-success font-bold mt-0.5">{sponsorPhone}</span>
+                            )}
+                          </div>
+
+                          {/* Compact Minimized Price & Mode */}
+                          <div className="flex items-col items-end">
+                            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Est. Value</span>
+                            {Number(item.amount) > 0 ? (
+                              <span className="text-xs font-bold text-secondary-text font-mono mt-0.5">₹{Number(item.amount).toLocaleString()}</span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-antique-gold mt-0.5">In-Kind Material</span>
+                            )}
+                            <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-white border border-border-custom text-primary-maroon uppercase mt-1">
+                              {item.payment_method === 'IN_KIND' ? 'In-Kind Item' : item.payment_method}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Notes / Remarks */}
+                        {extraNotes && (
+                          <p className="text-[10px] text-secondary-text italic line-clamp-1">{extraNotes}</p>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {/* 3. PUBLIC DONATIONS (CHANDHALU) LIST */}
-          {activeTab === 'CHANDHALU' && (
-            <>
-              {chandhalu
-                .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true)).length === 0 ? (
+          {activeTab === 'CHANDHALU' && (() => {
+            const filtered = chandhalu
+              .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
+              .filter(item => {
+                const query = searchQuery.toLowerCase().trim();
+                const matchesSearch = !query || 
+                  item.donor_name?.toLowerCase().includes(query) ||
+                  item.donor_phone?.includes(query) ||
+                  (item.notes && item.notes.toLowerCase().includes(query));
+                
+                const matchesPayment = paymentMethodFilter === 'ALL' || item.payment_method === paymentMethodFilter;
+                
+                let matchesAmount = true;
+                const amt = Number(item.amount) || 0;
+                if (amountRange === 'UNDER_500') matchesAmount = amt < 500;
+                else if (amountRange === '500_1000') matchesAmount = amt >= 500 && amt <= 1000;
+                else if (amountRange === '1000_5000') matchesAmount = amt > 1000 && amt <= 5000;
+                else if (amountRange === 'OVER_5000') matchesAmount = amt > 5000;
+                
+                return matchesSearch && matchesPayment && matchesAmount;
+              });
+            return (
+              <>
+                {filtered.length === 0 ? (
                   <div className="text-center p-8 bg-white border border-border-custom rounded-2xl text-xs text-secondary-text">
-                    No public donations recorded for {selectedYear === 0 ? 'All Time' : selectedYear}.
+                    No matching public donations found.
                   </div>
                 ) : (
-                  chandhalu
-                    .filter(item => (selectedYear > 0 ? new Date(item.date).getFullYear() === selectedYear : true))
-                    .map(item => (
-                      <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <h4 className="text-xs font-extrabold text-primary-text truncate">{item.donor_name}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium">
-                            {item.donor_phone && <span className="font-mono text-success/80">{item.donor_phone}</span>}
-                            {item.donor_phone && <span>•</span>}
-                            <span>{item.date}</span>
-                            <span>•</span>
-                            <span className="font-mono text-[9px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text">{item.payment_method}</span>
-                          </div>
+                  filtered.map(item => (
+                    <div key={item.id} className="bg-white border border-border-custom p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <h4 className="text-xs font-extrabold text-primary-text truncate">{item.donor_name}</h4>
+                        <div className="flex items-center gap-2 text-[10px] text-secondary-text font-medium">
+                          {item.donor_phone && <span className="font-mono text-success/80">{item.donor_phone}</span>}
+                          {item.donor_phone && <span>•</span>}
+                          <span>{item.date}</span>
+                          <span>•</span>
+                          <span className="font-mono text-[9px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded text-primary-text">{item.payment_method}</span>
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
                           <div className="flex flex-col items-end gap-1 shrink-0">
                             <span className="text-xs font-black text-primary-text">₹{Number(item.amount).toLocaleString()}</span>
                             <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase bg-success/10 text-success">
@@ -701,10 +925,12 @@ export const Finance: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    ))
+                    </div>
+                  ))
                 )}
-            </>
-          )}
+              </>
+            );
+          })()}
         </div>
       )}
 
