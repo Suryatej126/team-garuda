@@ -57,17 +57,13 @@ def seed_db():
             {"member_id": "TG004", "name": "Bheemesh", "phone": "9398555549"},
             {"member_id": "TG005", "name": "Ram Ganesh", "phone": "6304934345"},
             {"member_id": "TG006", "name": "Prakash", "phone": "9440540886"},
-            {"member_id": "TG007", "name": "Sridhar Reddy", "phone": "+91 95544 33221"},
-            {"member_id": "TG008", "name": "Anusha Rao", "phone": "+91 84433 22110"},
-            {"member_id": "TG009", "name": "Ramesh Kumar", "phone": "+91 73322 11009"},
-            {"member_id": "TG010", "name": "Venkatesh Naidu", "phone": "+91 92211 00998"},
-            {"member_id": "TG011", "name": "Loku Tn", "phone": "9000100011"},
-            {"member_id": "TG012", "name": "Surya", "phone": "9000100012"},
-            {"member_id": "TG013", "name": "Gottam", "phone": "9000100013"},
-            {"member_id": "TG014", "name": "Aditya Annaya", "phone": "9000100014"},
-            {"member_id": "TG015", "name": "Lokesh Annaya", "phone": "9000100015"},
-            {"member_id": "TG016", "name": "Kalyan", "phone": "9000100016"},
-            {"member_id": "TG017", "name": "Sandeep", "phone": "9000100017"},
+            {"member_id": "TG007", "name": "Loku Tn", "phone": "9000100011"},
+            {"member_id": "TG008", "name": "Surya", "phone": "9000100012"},
+            {"member_id": "TG009", "name": "Vijay", "phone": "9000100013"},
+            {"member_id": "TG010", "name": "Aditya Annaya", "phone": "9000100014"},
+            {"member_id": "TG011", "name": "Lokesh Annaya", "phone": "9000100015"},
+            {"member_id": "TG012", "name": "Kalyan", "phone": "9000100016"},
+            {"member_id": "TG013", "name": "Sandeep", "phone": "9000100017"},
         ]
 
         members = []
@@ -145,7 +141,7 @@ def seed_db():
             {"name": "Loku Tn", "paid": 350.00, "balance": 550.00, "method": "UPI"},
             {"name": "Hema Raj", "paid": 1000.00, "balance": 0.00, "method": "BANK_TRANSFER"},
             {"name": "Surya", "paid": 100.00, "balance": 900.00, "method": "UPI"},
-            {"name": "Gottam", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
+            {"name": "Vijay", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
             {"name": "Ram Ganesh", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
             {"name": "Aditya", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
             {"name": "Bheemesh", "paid": 200.00, "balance": 800.00, "method": "UPI"},
@@ -197,100 +193,6 @@ def seed_db():
 
         print("Seeded member contributions matching the actual committee list.")
 
-        # 5. Seed Sponsorships (Committee Member A = ₹10,000 paid)
-        s1 = Sponsorship(
-            user_id=suriya.id,
-            amount=10000.00,
-            date=datetime.date(2026, 8, 14),
-            payment_method="UPI",
-            transaction_id="TXN77881122",
-            event_id=ganesh.id,
-            status="PAID",
-            notes="Personal sponsorship from committee member Suriya."
-        )
-        s2 = Sponsorship(
-            user_id=teja.id,
-            amount=5000.00,
-            date=datetime.date(2026, 8, 18),
-            payment_method="BANK_TRANSFER",
-            transaction_id=None,
-            event_id=dussera.id,
-            status="PENDING",
-            notes="Pledged sponsorship for Dussera."
-        )
-
-        db.add_all([s1, s2])
-        db.commit()
-
-        print("Seeded sponsorships: Rs. 10,000 paid, Rs. 5,000 pending.")
-
-        # 6. Seed Expenses (Decoration ₹5,000, Food ₹3,000)
-        e1 = Expense(
-            name="Pandal Decoration & Lighting",
-            amount=5000.00,
-            date=datetime.date(2026, 8, 17),
-            category="DECORATION",
-            payment_method="CASH",
-            event_id=ganesh.id,
-            paid_by=suriya.id,
-            receipt_url="/uploads/receipt_decoration_demo.jpg",
-            notes="Stage decoration and flowers. Paid cash to builder."
-        )
-        e2 = Expense(
-            name="Pooja Prasadam and Catering",
-            amount=3000.00,
-            date=datetime.date(2026, 8, 18),
-            category="FOOD",
-            payment_method="UPI",
-            event_id=ganesh.id,
-            paid_by=teja.id,
-            receipt_url="/uploads/receipt_prasadam_demo.jpg",
-            notes="Prasadam preparation (Laddus, Puliohara)."
-        )
-
-        db.add_all([e1, e2])
-        db.commit()
-
-        print("Seeded expenses: Rs. 8,000 total (Rs. 5,000 decoration, Rs. 3,000 food).")
-
-        # 7. Seed Media Photos & Videos for Ganesh Festival
-        m1 = Media(
-            event_id=ganesh.id,
-            type="PHOTO",
-            file_url="https://images.unsplash.com/photo-1605051008471-7501a3507b5a?w=800&auto=format&fit=crop",
-            thumbnail_url="https://images.unsplash.com/photo-1605051008471-7501a3507b5a?w=400&auto=format&fit=crop",
-            caption="Lord Ganesha Idol Installation",
-            uploaded_by=suriya.id
-        )
-        m2 = Media(
-            event_id=ganesh.id,
-            type="PHOTO",
-            file_url="https://images.unsplash.com/photo-1567591974573-ef3c675516e4?w=800&auto=format&fit=crop",
-            thumbnail_url="https://images.unsplash.com/photo-1567591974573-ef3c675516e4?w=400&auto=format&fit=crop",
-            caption="Morning Pooja Aarti",
-            uploaded_by=suriya.id
-        )
-        m3 = Media(
-            event_id=ganesh.id,
-            type="PHOTO",
-            file_url="https://images.unsplash.com/photo-1601662528567-526cd06f6582?w=800&auto=format&fit=crop",
-            thumbnail_url="https://images.unsplash.com/photo-1601662528567-526cd06f6582?w=400&auto=format&fit=crop",
-            caption="Prasadam Distribution",
-            uploaded_by=teja.id
-        )
-        m4 = Media(
-            event_id=ganesh.id,
-            type="VIDEO",
-            file_url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            thumbnail_url="https://images.unsplash.com/photo-1567591974573-ef3c675516e4?w=400&auto=format&fit=crop",
-            caption="Procession Aarti Video",
-            uploaded_by=vinay.id
-        )
-
-        db.add_all([m1, m2, m3, m4])
-        db.commit()
-
-        print("Seeded 3 photos and 1 video gallery elements.")
         print("\nDATABASE SEEDING COMPLETED SUCCESSFULLY!")
 
     except Exception as e:

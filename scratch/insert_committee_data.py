@@ -56,7 +56,7 @@ def insert_data():
             {"name": "Loku Tn", "paid": 350.00, "balance": 550.00, "method": "UPI"},
             {"name": "Hema Raj", "paid": 1000.00, "balance": 0.00, "method": "BANK_TRANSFER"},
             {"name": "Surya", "paid": 100.00, "balance": 900.00, "method": "UPI"},
-            {"name": "Gottam", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
+            {"name": "Vijay", "paid": 0.00, "balance": 1000.00, "method": "UPI"},
             {"name": "Ram Ganesh", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
             {"name": "Aditya", "paid": 1000.00, "balance": 0.00, "method": "UPI"},
             {"name": "Bheemesh", "paid": 200.00, "balance": 800.00, "method": "UPI"},
@@ -76,7 +76,7 @@ def insert_data():
             balance = item["balance"]
             method = item["method"]
 
-            print(f"\nProcessing: {name} (Paid: ₹{paid}, Balance: ₹{balance})")
+            print(f"\nProcessing: {name} (Paid: Rs. {paid}, Balance: Rs. {balance})")
 
             # A. Find or create member
             # Try exact case-insensitive match on name
