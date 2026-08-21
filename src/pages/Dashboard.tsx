@@ -232,7 +232,7 @@ export const Dashboard: React.FC = () => {
               setVideoError(false);
             }}
           >
-            <source src="/video.mp4" type="video/mp4" />
+            <source src="/dashboard_video.mp4" type="video/mp4" />
           </video>
 
           {/* Shimmer / Glow Animation overlays */}

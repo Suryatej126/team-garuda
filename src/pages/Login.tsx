@@ -59,7 +59,7 @@ export const Login: React.FC = () => {
         playsInline 
         className="absolute inset-0 w-full h-full object-cover opacity-60 z-0 pointer-events-none filter blur-sm scale-105"
       >
-        <source src="/video.mp4" type="video/mp4" />
+        <source src="/login_video.mp4" type="video/mp4" />
       </video>
 
       {/* Dark overlay for readability */}
