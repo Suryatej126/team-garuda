@@ -850,6 +850,11 @@ export const Members: React.FC = () => {
                               {item.notes && (
                                 <p className="italic text-secondary-text mt-1 text-[9px]">"{item.notes}"</p>
                               )}
+                              {item.collected_by && (
+                                <span className="text-[8px] font-bold text-secondary-text mt-0.5 bg-secondary-bg px-1.5 py-0.5 rounded w-fit block">
+                                  Rec By: {item.collected_by}
+                                </span>
+                              )}
                             </div>
                           </div>
 

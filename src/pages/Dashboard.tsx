@@ -40,6 +40,7 @@ interface ContributionFeedItem {
     name: string;
     phone: string | null;
   } | null;
+  collected_by?: string | null;
 }
 
 export const Dashboard: React.FC = () => {
@@ -438,6 +439,11 @@ export const Dashboard: React.FC = () => {
                       <span>•</span>
                       <span className="font-mono text-[9px] uppercase bg-secondary-bg px-1.5 py-0.5 rounded-md text-primary-text">{item.payment_method}</span>
                     </div>
+                    {item.collected_by && (
+                      <span className="text-[8px] text-secondary-text font-bold bg-secondary-bg px-1.5 py-0.5 rounded w-fit block mt-1">
+                        Rec By: {item.collected_by}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-1 shrink-0">
