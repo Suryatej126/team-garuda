@@ -151,3 +151,17 @@ class Chandha(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
+
+class ReceiptSetting(Base):
+    __tablename__ = 'receipt_settings'
+
+    id = Column(Integer, primary_key=True, index=True)
+    org_name = Column(String(100), nullable=False, default="వినాయక చవితి")
+    org_subtitle = Column(String(100), nullable=False, default="నవరాత్రుల మహోత్సవములు")
+    org_association = Column(String(100), nullable=False, default="శ్రీ బాల బాలాజీ యువజన సంఘం")
+    receipt_prefix = Column(String(20), nullable=False, default="TG-CH")
+    default_purpose = Column(String(100), nullable=False, default="Ganapathi Utsav Contributions")
+    signature_title = Column(String(100), nullable=False, default="Signature of Authorized Person")
+    logo_url = Column(String(255), nullable=True, default="/logo.png")
+
+

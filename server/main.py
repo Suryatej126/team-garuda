@@ -10,12 +10,16 @@ from pydantic import BaseModel, EmailStr
 
 from .database import get_db, engine
 from .config import ALLOWED_ORIGINS, UPLOAD_DIR
-from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor
+from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor, ReceiptSetting
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, require_committee
 from .storage import storage_client
 
 # Initialize FastAPI App
 app = FastAPI(title="Team Garuda API", version="1.0.0")
+
+# Auto-initialize database tables on startup
+Base.metadata.create_all(bind=engine)
+
 
 # Configure CORS
 app.add_middleware(
@@ -278,7 +282,31 @@ class ChandhaUpdate(BaseModel):
     notes: Optional[str] = None
     collected_by: Optional[str] = None
 
+class ReceiptSettingResponse(BaseModel):
+
+    id: int
+    org_name: str
+    org_subtitle: str
+    org_association: str
+    receipt_prefix: str
+    default_purpose: str
+    signature_title: str
+    logo_url: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+class ReceiptSettingUpdate(BaseModel):
+    org_name: Optional[str] = None
+    org_subtitle: Optional[str] = None
+    org_association: Optional[str] = None
+    receipt_prefix: Optional[str] = None
+    default_purpose: Optional[str] = None
+    signature_title: Optional[str] = None
+    logo_url: Optional[str] = None
+
 # --- Routes ---
+
 
 @app.post("/api/auth/login", response_model=Token)
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
@@ -1034,3 +1062,61 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     db.delete(usr)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+# Receipt Settings Management
+@app.get("/api/finance/receipt-settings", response_model=ReceiptSettingResponse)
+def get_receipt_settings(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    setting = db.query(ReceiptSetting).first()
+    if not setting:
+        setting = ReceiptSetting(
+            org_name="వినాయక చవితి",
+            org_subtitle="నవరాత్రుల మహోత్సవములు",
+            org_association="శ్రీ బాల బాలాజీ యువజన సంఘం",
+            receipt_prefix="TG-CH",
+            default_purpose="Ganapathi Utsav Contributions",
+            signature_title="Signature of Authorized Person",
+            logo_url="/logo.png"
+        )
+        db.add(setting)
+        db.commit()
+        db.refresh(setting)
+    return setting
+
+
+@app.put("/api/admin/receipt-settings", response_model=ReceiptSettingResponse)
+def update_receipt_settings(setting_data: ReceiptSettingUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    setting = db.query(ReceiptSetting).first()
+    if not setting:
+        setting = ReceiptSetting(
+            org_name="వినాయక చవితి",
+            org_subtitle="నవరాత్రుల మహోత్సవములు",
+            org_association="శ్రీ బాల బాలాజీ యువజన సంఘం",
+            receipt_prefix="TG-CH",
+            default_purpose="Ganapathi Utsav Contributions",
+            signature_title="Signature of Authorized Person",
+            logo_url="/logo.png"
+        )
+        db.add(setting)
+        db.commit()
+        db.refresh(setting)
+    
+    if setting_data.org_name is not None:
+        setting.org_name = setting_data.org_name
+    if setting_data.org_subtitle is not None:
+        setting.org_subtitle = setting_data.org_subtitle
+    if setting_data.org_association is not None:
+        setting.org_association = setting_data.org_association
+    if setting_data.receipt_prefix is not None:
+        setting.receipt_prefix = setting_data.receipt_prefix
+    if setting_data.default_purpose is not None:
+        setting.default_purpose = setting_data.default_purpose
+    if setting_data.signature_title is not None:
+        setting.signature_title = setting_data.signature_title
+    if setting_data.logo_url is not None:
+        setting.logo_url = setting_data.logo_url
+
+    db.commit()
+    db.refresh(setting)
+    return setting
+

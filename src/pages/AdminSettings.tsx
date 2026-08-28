@@ -30,6 +30,18 @@ export const AdminSettings: React.FC = () => {
   const [newRole, setNewRole] = useState('COMMITTEE');
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
+  // Receipt Template Configuration states
+  const [orgName, setOrgName] = useState('వినాయక చవితి');
+  const [orgSubtitle, setOrgSubtitle] = useState('నవరాత్రుల మహోత్సవములు');
+  const [orgAssociation, setOrgAssociation] = useState('శ్రీ బాల బాలాజీ యువజన సంఘం');
+  const [receiptPrefix, setReceiptPrefix] = useState('TG-CH');
+  const [defaultPurpose, setDefaultPurpose] = useState('Ganapathi Utsav Contributions');
+  const [signatureTitle, setSignatureTitle] = useState('Signature of Authorized Person');
+  const [logoUrl, setLogoUrl] = useState('/logo.png');
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+
   const fetchUsers = async () => {
     if (!isAdmin) return;
     setLoadingUsers(true);
@@ -47,9 +59,70 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
+  const fetchReceiptSettings = async () => {
+    if (!token) return;
+    setLoadingSettings(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/finance/receipt-settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrgName(data.org_name);
+        setOrgSubtitle(data.org_subtitle);
+        setOrgAssociation(data.org_association);
+        setReceiptPrefix(data.receipt_prefix);
+        setDefaultPurpose(data.default_purpose);
+        setSignatureTitle(data.signature_title);
+        setLogoUrl(data.logo_url || '/logo.png');
+      }
+    } catch (err) {
+      console.error('Error fetching receipt settings:', err);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    setSettingsSuccess(false);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/receipt-settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          org_name: orgName.trim(),
+          org_subtitle: orgSubtitle.trim(),
+          org_association: orgAssociation.trim(),
+          receipt_prefix: receiptPrefix.trim(),
+          default_purpose: defaultPurpose.trim(),
+          signature_title: signatureTitle.trim(),
+          logo_url: logoUrl.trim()
+        })
+      });
+      if (res.ok) {
+        setSettingsSuccess(true);
+        setTimeout(() => setSettingsSuccess(false), 3000);
+      } else {
+        alert('Failed to save receipt settings.');
+      }
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      alert('Network error saving settings.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchReceiptSettings();
   }, [token, isAdmin]);
+
 
   const openAddUserSheet = () => {
     setFormError('');
@@ -230,9 +303,111 @@ export const AdminSettings: React.FC = () => {
           </div>
         )}
 
+        {/* Receipt Settings Section (Only visible to Admin) */}
+        {isAdmin && (
+          <div className="flex flex-col gap-3">
+            <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-secondary-text">Receipt Template Settings</h4>
+            {loadingSettings ? (
+              <div className="py-4 flex justify-center">
+                <div className="w-5 h-5 rounded-full border-2 border-t-primary-maroon border-border-custom animate-spin" />
+              </div>
+            ) : (
+              <form onSubmit={handleSaveSettings} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3.5 shadow-sm text-left">
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Receipt Main Header (Telugu)</label>
+                  <input
+                    type="text"
+                    value={orgName}
+                    onChange={e => setOrgName(e.target.value)}
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Receipt Sub-Header (Telugu)</label>
+                  <input
+                    type="text"
+                    value={orgSubtitle}
+                    onChange={e => setOrgSubtitle(e.target.value)}
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Association Name (Telugu Yellow Text)</label>
+                  <input
+                    type="text"
+                    value={orgAssociation}
+                    onChange={e => setOrgAssociation(e.target.value)}
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Receipt ID Prefix</label>
+                    <input
+                      type="text"
+                      value={receiptPrefix}
+                      onChange={e => setReceiptPrefix(e.target.value)}
+                      className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold font-mono"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Default Purpose</label>
+                    <input
+                      type="text"
+                      value={defaultPurpose}
+                      onChange={e => setDefaultPurpose(e.target.value)}
+                      className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Signature / Seal Title</label>
+                  <input
+                    type="text"
+                    value={signatureTitle}
+                    onChange={e => setSignatureTitle(e.target.value)}
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Logo URL / Path</label>
+                  <input
+                    type="text"
+                    value={logoUrl}
+                    onChange={e => setLogoUrl(e.target.value)}
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold font-mono"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-2.5 rounded-xl mt-1 active:scale-95 transition-all shadow-md flex justify-center items-center cursor-pointer"
+                >
+                  {savingSettings ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  ) : settingsSuccess ? (
+                    <span className="text-success font-black flex items-center gap-1">✓ Settings Saved Successfully</span>
+                  ) : (
+                    <span>Save Receipt Settings</span>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
         {/* Configuration list options */}
         <div className="flex flex-col gap-2.5">
           <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-secondary-text">Account Settings</h4>
+
           
           <div className="bg-white border border-border-custom rounded-2xl overflow-hidden shadow-sm">
             <button 

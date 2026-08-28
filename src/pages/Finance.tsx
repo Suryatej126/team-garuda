@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Trash2, Plus, Gift, Edit2, CheckCircle2, Clock, Search } from 'lucide-react';
+import { Trash2, Plus, Gift, Edit2, CheckCircle2, Clock, Search, Share2 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { ReceiptModal } from '../components/ReceiptModal';
+
 
 interface Member {
   id: number;
@@ -74,6 +76,11 @@ export const Finance: React.FC = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Receipt Modal State
+  const [activeReceiptContribution, setActiveReceiptContribution] = useState<any | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
 
   // --- Committee Contribution Form states ---
   const [cMemberId, setCMemberId] = useState('');
@@ -415,8 +422,12 @@ export const Finance: React.FC = () => {
         });
 
         if (res.ok) {
+          const savedData = await res.json();
           setIsSheetOpen(false);
           fetchFinanceData();
+          // Auto launch receipt preview modal
+          setActiveReceiptContribution(savedData);
+          setIsReceiptOpen(true);
         } else {
           const errData = await res.json();
           setFormError(errData.detail || 'Failed to save public donation.');
@@ -939,6 +950,16 @@ export const Finance: React.FC = () => {
                             </span>
                           </div>
                           <button 
+                            onClick={() => {
+                              setActiveReceiptContribution(item);
+                              setIsReceiptOpen(true);
+                            }}
+                            className="p-1 rounded-full text-secondary-text hover:text-success active:scale-90 cursor-pointer"
+                            title="Receipt / Share"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-success" />
+                          </button>
+                          <button 
                             onClick={() => handleDelete('CHANDHA', item.id)}
                             className="p-1 rounded-full text-secondary-text hover:text-error active:scale-90 cursor-pointer"
                           >
@@ -1240,6 +1261,17 @@ export const Finance: React.FC = () => {
           </button>
         </form>
       </BottomSheet>
+
+      <ReceiptModal 
+        isOpen={isReceiptOpen}
+        onClose={() => {
+          setIsReceiptOpen(false);
+          setActiveReceiptContribution(null);
+        }}
+        contribution={activeReceiptContribution}
+      />
     </div>
   );
 };
+export default Finance;
+

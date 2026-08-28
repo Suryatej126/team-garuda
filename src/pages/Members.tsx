@@ -15,11 +15,14 @@ import {
   Upload, 
   Download,
   Printer,
-  FileText
+  FileText,
+  Share2
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ReceiptModal } from '../components/ReceiptModal';
+
 
 interface Contributor {
   id: number;
@@ -81,7 +84,12 @@ export const Members: React.FC = () => {
   const [contributionToDelete, setContributionToDelete] = useState<Contribution | null>(null);
   const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
 
+  // Receipt Modal State
+  const [activeReceiptContribution, setActiveReceiptContribution] = useState<any | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
   // Form Fields State
+
   const [contributorName, setContributorName] = useState('');
   const [contributorPhone, setContributorPhone] = useState('');
   const [amount, setAmount] = useState('');
@@ -280,6 +288,7 @@ export const Members: React.FC = () => {
       });
 
       if (res.ok) {
+        const savedData = await res.json();
         setIsFormSheetOpen(false);
         // Show success toast
         setSuccessToast({
@@ -290,6 +299,9 @@ export const Members: React.FC = () => {
         setTimeout(() => setSuccessToast(null), 3500);
 
         fetchAllData();
+        // Auto-launch receipt preview modal
+        setActiveReceiptContribution(savedData);
+        setIsReceiptOpen(true);
       } else {
         const errData = await res.json();
         setFormError(errData.detail || 'Failed to save contribution.');
@@ -861,6 +873,16 @@ export const Members: React.FC = () => {
                           {/* Edit / Delete buttons */}
                           <div className="flex items-center gap-2 shrink-0 ml-3">
                             <button 
+                              onClick={() => {
+                                setActiveReceiptContribution(item);
+                                setIsReceiptOpen(true);
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white border border-success/30 flex items-center justify-center text-success hover:bg-success/5 active:scale-95 cursor-pointer"
+                              title="Receipt / Share"
+                            >
+                              <Share2 className="w-3.5 h-3.5 text-success" />
+                            </button>
+                            <button 
                               onClick={() => openEditContribution(item)}
                               className="w-7 h-7 rounded-lg bg-white border border-border-custom flex items-center justify-center text-secondary-text hover:text-primary-maroon active:scale-90 cursor-pointer"
                             >
@@ -1143,6 +1165,16 @@ export const Members: React.FC = () => {
         </form>
       </BottomSheet>
 
+      <ReceiptModal 
+        isOpen={isReceiptOpen}
+        onClose={() => {
+          setIsReceiptOpen(false);
+          setActiveReceiptContribution(null);
+        }}
+        contribution={activeReceiptContribution}
+      />
     </div>
   );
 };
+export default Members;
+
