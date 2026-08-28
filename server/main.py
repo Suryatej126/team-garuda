@@ -18,7 +18,11 @@ from .storage import storage_client
 app = FastAPI(title="Team Garuda API", version="1.0.0")
 
 # Auto-initialize database tables on startup
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Warning: Failed to auto-create tables on boot: {e}")
+
 
 
 # Configure CORS
@@ -418,10 +422,39 @@ def get_finance_summary(year: Optional[int] = None, db: Session = Depends(get_db
         "expense_by_category": expense_by_category
     }
 
+# Helper to synchronize committee users into Member and Contributor tables
+def sync_users_to_members(db: Session):
+    committee_users = db.query(User).filter(User.role.in_(["COMMITTEE", "ADMIN"])).all()
+    for u in committee_users:
+        if u.username.lower() == "admin":
+            continue
+        member_name = u.username.capitalize()
+        existing_member = db.query(Member).filter(Member.name.ilike(member_name)).first()
+        if not existing_member:
+            count = db.query(Member).count() + 1
+            new_member_id = f"TG{count:03d}"
+            new_member = Member(
+                member_id=new_member_id,
+                name=member_name,
+                phone=None,
+                pin_hash=hash_password("123456"),
+                status="ACTIVE"
+            )
+            db.add(new_member)
+            db.commit()
+
+        existing_contrib = db.query(Contributor).filter(Contributor.name.ilike(member_name)).first()
+        if not existing_contrib:
+            new_contrib = Contributor(name=member_name, phone=None)
+            db.add(new_contrib)
+            db.commit()
+
 # Member Management
 @app.get("/api/committee/members", response_model=List[MemberResponse])
 def get_members(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    sync_users_to_members(db)
     return db.query(Member).order_by(Member.member_id.asc()).all()
+
 
 @app.post("/api/committee/members", response_model=MemberResponse)
 def create_member(member_data: MemberCreate, db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
@@ -1012,6 +1045,9 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_us
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    # Auto-sync committee user into Member and Contributor tables
+    sync_users_to_members(db)
     return user
 
 class UserUpdate(BaseModel):

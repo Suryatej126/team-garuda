@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Share2, Download, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Download, CheckCircle2, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { BottomSheet } from './BottomSheet';
 import { API_BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 
 interface ReceiptSetting {
   id: number;
@@ -90,6 +92,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
   const { token } = useAuth();
   const [settings, setSettings] = useState<ReceiptSetting | null>(null);
   const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [sharingImage, setSharingImage] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
 
 
   useEffect(() => {
@@ -168,7 +173,61 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   const amountInWords = numberToWords(amount);
 
-  // Generate and Share via WhatsApp Click-to-Chat
+  // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
+  const handleShareImage = async () => {
+    if (!receiptRef.current) return;
+    setSharingImage(true);
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#FAF7F2'
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setSharingImage(false);
+          return;
+        }
+
+        const fileName = `Receipt_${receiptPrefix}_${id}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `${orgName} - Official Receipt`,
+              text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${id} for ₹${amount.toLocaleString('en-IN')}/-`
+            });
+            setSharingImage(false);
+            return;
+          } catch (shareErr) {
+            console.log('Native share canceled or fallback needed:', shareErr);
+          }
+        }
+
+        // Desktop Fallback: Download the high-res PNG image and open WhatsApp
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        handleShareWhatsApp();
+        setSharingImage(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Error generating image:', err);
+      setSharingImage(false);
+    }
+  };
+
+  // Generate and Share via WhatsApp Click-to-Chat (Text version)
   const handleShareWhatsApp = () => {
     const message = `🚩 *${orgName.toUpperCase()} ${orgSubtitle.toUpperCase()}* 🚩\n` +
       `*${orgAssociation}*\n\n` +
@@ -346,7 +405,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       <div className="flex flex-col gap-5 select-text pb-4">
         
         {/* Visual Receipt Card layout matching the custom Telugu mockup */}
-        <div className="w-full bg-[#FAF7F2] border border-[#C99A4A] rounded-2xl overflow-hidden shadow-md flex flex-col relative select-text">
+        <div ref={receiptRef} className="w-full bg-[#FAF7F2] border border-[#C99A4A] rounded-2xl overflow-hidden shadow-md flex flex-col relative select-text">
           
           {/* Filigree right border graphic */}
           <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-gradient-to-b from-[#C99A4A]/40 to-[#C99A4A]/20 border-l border-[#C99A4A]/30 flex flex-col items-center justify-around py-2 shrink-0">
@@ -403,7 +462,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               <div className="flex flex-col gap-1">
                 <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Town / Village:</span>
                 <span className="font-serif italic font-bold text-blue-900 text-xs tracking-wide bg-blue-50/40 px-2 py-1.5 rounded-lg border border-blue-900/10">
-                  {contribution.donor_phone ? (contribution as any).notes || 'Razole' : 'Razole'}
+                  {town}
                 </span>
               </div>
 
@@ -461,24 +520,42 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
         </div>
 
-        {/* Share buttons */}
-        <div className="grid grid-cols-2 gap-3.5 shrink-0">
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2.5 shrink-0">
+          {/* Primary Button: Share Image (Native share on mobile or PNG download + WhatsApp on desktop) */}
           <button
-            onClick={handleShareWhatsApp}
-            className="bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
+            onClick={handleShareImage}
+            disabled={sharingImage}
+            className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-60"
           >
-            <Share2 className="w-4 h-4" />
-            <span>Share WhatsApp</span>
+            {sharingImage ? (
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <ImageIcon className="w-4 h-4" />
+            )}
+            <span>{sharingImage ? 'Preparing Receipt Image...' : 'Share Receipt Image (WhatsApp / Groups)'}</span>
           </button>
-          
-          <button
-            onClick={handleDownloadPDF}
-            disabled={pdfGenerating}
-            className="bg-primary-maroon hover:bg-dark-maroon text-white py-3.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md disabled:opacity-55 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>{pdfGenerating ? 'Generating...' : 'Download PDF'}</span>
-          </button>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Share Formatted Text */}
+            <button
+              onClick={handleShareWhatsApp}
+              className="bg-white border border-[#25D366] text-[#25D366] hover:bg-[#25D366]/5 py-3 rounded-xl font-extrabold text-[11px] flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Share Text Only</span>
+            </button>
+            
+            {/* Download PDF */}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfGenerating}
+              className="bg-primary-maroon hover:bg-dark-maroon text-white py-3 rounded-xl font-extrabold text-[11px] flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm disabled:opacity-55 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{pdfGenerating ? 'Generating...' : 'Download PDF'}</span>
+            </button>
+          </div>
         </div>
 
       </div>
