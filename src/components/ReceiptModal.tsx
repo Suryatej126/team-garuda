@@ -229,6 +229,24 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     }
   };
 
+  const handleShareWhatsAppChatOnly = () => {
+    const donorPhone = contribution.donor_phone || contribution.contributor?.phone || '';
+    const cleanedPhone = formatWhatsAppPhone(donorPhone);
+    const shareUrl = cleanedPhone 
+      ? `https://api.whatsapp.com/send?phone=${cleanedPhone}`
+      : `https://api.whatsapp.com/send`;
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = shareUrl;
+    } else {
+      const newWindow = window.open(shareUrl, '_blank');
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        window.location.href = shareUrl;
+      }
+    }
+  };
+
   // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
   const handleShareImage = async () => {
     setSharingImage(true);
@@ -244,9 +262,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
         try {
           await navigator.share({
-            files: [fileToShare],
-            title: `${orgName} - Official Receipt`,
-            text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${displayId} for ₹${amount.toLocaleString('en-IN')}/-`
+            files: [fileToShare]
           });
           return;
         } catch (shareErr: any) {
@@ -280,7 +296,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      handleShareWhatsApp();
+      handleShareWhatsAppChatOnly();
     } catch (err) {
       console.error('Error sharing image:', err);
     } finally {
