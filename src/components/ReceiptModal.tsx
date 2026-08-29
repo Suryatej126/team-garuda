@@ -472,7 +472,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         doc.setTextColor(100, 100, 100);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
-        doc.text(signatureTitle, pgW - 18, 180, { align: 'right' });
+        const signatureText = collectedBy && collectedBy !== 'N/A' ? `Signature of ${collectedBy}` : signatureTitle;
+        doc.text(signatureText, pgW - 18, 180, { align: 'right' });
         doc.setDrawColor(180, 180, 180);
         doc.setLineWidth(0.2);
         doc.line(pgW - 60, 176, pgW - 18, 176);
@@ -550,7 +551,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
           <div 
             style={{
               backgroundColor: '#C41E3A',
-              padding: '12px 16px',
+              padding: '16px 16px',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -583,23 +584,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   color: '#FFFFFF',
                   fontFamily: 'Georgia, serif',
                   letterSpacing: '0.5px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  lineHeight: '1.3'
                 }}
               >
                 {orgName}
               </h1>
               <p 
                 style={{
-                  margin: '2px 0 0 0',
+                  margin: '4px 0 0 0',
                   fontSize: '10px',
                   color: 'rgba(255, 255, 255, 0.9)',
                   fontStyle: 'italic',
                   fontFamily: 'Georgia, serif',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  lineHeight: '1.3'
                 }}
               >
                 {orgSubtitle}
@@ -722,8 +719,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 </span>
               </div>
 
-              <div style={{ display: 'flex', gap: '14px', marginTop: '2px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Mode:</span>
                   <span 
                     style={{
@@ -743,9 +740,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Collected By:</span>
-                  <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#111111', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#111111', display: 'block' }}>
                     {collectedBy}
                   </span>
                 </div>
@@ -789,6 +786,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   color: '#C41E3A',
                   fontFamily: 'serif',
                   transform: 'rotate(-12deg)',
+                  marginLeft: '8px',
                   userSelect: 'none',
                   flexShrink: 0,
                   opacity: 0.8,
@@ -802,7 +800,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
               {/* Signature label */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <div style={{ width: '96px', borderBottom: '1px solid rgba(0,0,0,0.15)', height: '24px' }} />
+                <div style={{ width: '120px', borderBottom: '1px solid rgba(0,0,0,0.15)', height: '24px' }} />
                 <span 
                   style={{
                     fontSize: '8px',
@@ -810,11 +808,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     fontWeight: 900,
                     marginTop: '4px',
                     textAlign: 'right',
-                    maxWidth: '120px',
+                    maxWidth: '150px',
                     lineHeight: '1.2'
                   }}
                 >
-                  {signatureTitle}
+                  {collectedBy && collectedBy !== 'N/A' ? `Signature of ${collectedBy}` : signatureTitle}
                 </span>
               </div>
             </div>
