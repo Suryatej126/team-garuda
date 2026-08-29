@@ -159,7 +159,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
   const orgName = settings?.org_name || 'వినాయక చవితి';
   const orgSubtitle = settings?.org_subtitle || 'నవరాత్రుల మహోత్సవములు';
   const orgAssociation = settings?.org_association || 'శ్రీ బాల బాలాజీ యువజన సంఘం';
-  const receiptPrefix = settings?.receipt_prefix || 'TG-CH';
+  const receiptPrefix = (settings?.receipt_prefix || 'TG-CH').trim().replace(/-+$/, '');
   const defaultPurpose = settings?.default_purpose || 'Ganapathi Utsav Contributions';
   const signatureTitle = settings?.signature_title || 'Signature of Authorized Person';
   const logoUrl = settings?.logo_url || '/logo.png';
@@ -202,20 +202,49 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   const amountInWords = numberToWords(amount);
 
+  const generateReceiptImage = async (): Promise<File | null> => {
+    if (!receiptRef.current) return null;
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#FAF7F2'
+      });
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const prefix = settings?.receipt_prefix || 'TG-CH';
+            const fileName = `Receipt_${prefix}_${contribution.id}.png`;
+            const file = new File([blob], fileName, { type: 'image/png' });
+            setReceiptFile(file);
+            resolve(file);
+          } else {
+            resolve(null);
+          }
+        }, 'image/png');
+      });
+    } catch (err) {
+      console.error('Error generating receipt image on demand:', err);
+      return null;
+    }
+  };
+
   // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
   const handleShareImage = async () => {
-    if (!receiptFile) {
-      // If not generated yet, fall back to direct text sharing
-      handleShareWhatsApp();
-      return;
-    }
     setSharingImage(true);
     try {
+      const fileToShare = receiptFile || await generateReceiptImage();
+      if (!fileToShare) {
+        // Only fall back to direct text sharing if generation completely failed
+        handleShareWhatsApp();
+        return;
+      }
+
       // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [receiptFile] })) {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
         try {
           await navigator.share({
-            files: [receiptFile],
+            files: [fileToShare],
             title: `${orgName} - Official Receipt`,
             text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${displayId} for ₹${amount.toLocaleString('en-IN')}/-`
           });
@@ -229,11 +258,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         }
       }
 
-      // Desktop Fallback: Download the high-res PNG image and open WhatsApp
-      const url = URL.createObjectURL(receiptFile);
+      // Desktop Fallback: Copy image to clipboard, download the high-res PNG image, and open WhatsApp
+      if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [fileToShare.type]: fileToShare
+            })
+          ]);
+        } catch (clipErr) {
+          console.log('Clipboard copy failed:', clipErr);
+        }
+      }
+
+      const url = URL.createObjectURL(fileToShare);
       const link = document.createElement('a');
       link.href = url;
-      link.download = receiptFile.name;
+      link.download = fileToShare.name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

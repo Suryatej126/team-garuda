@@ -752,9 +752,14 @@ def delete_contribution(contrib_id: int, db: Session = Depends(get_db), current_
     contrib = db.query(Contribution).filter(Contribution.id == contrib_id).first()
     if not contrib:
         raise HTTPException(status_code=404, detail="Contribution not found")
+    
+    # Pre-fetch details before deleting to avoid DetachedInstanceError
+    member_name = contrib.contributor.name if contrib.contributor else "Anonymous"
+    amount = float(contrib.amount)
+
     db.delete(contrib)
     db.commit()
-    log_action(db, current_user, "DELETE_CONTRIBUTION", f"Deleted contribution of member {contrib.contributor.name} for amount ₹{contrib.amount}")
+    log_action(db, current_user, "DELETE_CONTRIBUTION", f"Deleted contribution of member {member_name} for amount ₹{amount}")
     return {"message": "Contribution deleted successfully"}
 
 # Sponsorships Management
@@ -912,9 +917,14 @@ def delete_chandha(chandha_id: int, db: Session = Depends(get_db), current_user:
     contrib = db.query(Contribution).filter(Contribution.id == chandha_id, Contribution.member_id == None).first()
     if not contrib:
         raise HTTPException(status_code=404, detail="Public contribution record not found")
+    
+    # Pre-fetch details before deleting to avoid DetachedInstanceError
+    donor_name = contrib.contributor.name if contrib.contributor else "Anonymous"
+    amount = float(contrib.amount)
+
     db.delete(contrib)
     db.commit()
-    log_action(db, current_user, "DELETE_CHANDHA", f"Deleted public donation of {contrib.contributor.name} for amount ₹{contrib.amount}")
+    log_action(db, current_user, "DELETE_CHANDHA", f"Deleted public donation of {donor_name} for amount ₹{amount}")
     return {"message": "Public contribution deleted successfully"}
 
 # Users lookup for expense paid_by dropdown
@@ -975,13 +985,17 @@ def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user:
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
+    # Pre-fetch details before deleting to avoid DetachedInstanceError
+    expense_name = expense.name
+    amount = float(expense.amount)
+
     # Delete receipt file from local storage if exists
     if expense.receipt_url:
         storage_client.delete_file(expense.receipt_url)
         
     db.delete(expense)
     db.commit()
-    log_action(db, current_user, "DELETE_EXPENSE", f"Deleted expense of {expense.name} for amount ₹{expense.amount}")
+    log_action(db, current_user, "DELETE_EXPENSE", f"Deleted expense of {expense_name} for amount ₹{amount}")
     return {"message": "Expense deleted successfully"}
 
 # Media Management (Upload photo/video)
