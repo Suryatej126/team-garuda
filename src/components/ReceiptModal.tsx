@@ -505,14 +505,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             maxWidth: '380px',
             margin: '0 auto',
             backgroundColor: '#FAF7F2',
-            border: '2px solid #C99A4A',
+            border: '3px solid #C99A4A',
             borderRadius: '16px',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
             boxSizing: 'border-box',
-            paddingRight: '10px'
+            paddingRight: '10px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
           }}
         >
           
@@ -531,7 +532,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               alignItems: 'center',
               justifyContent: 'space-around',
               padding: '8px 0',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              zIndex: 2
             }}
           >
             {[...Array(12)].map((_, i) => (
@@ -547,6 +549,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             ))}
           </div>
 
+          {/* Ganesha Watermark Background */}
+          <div 
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '55%',
+              transform: 'translate(-50%, -50%)',
+              width: '180px',
+              height: '180px',
+              opacity: 0.05,
+              pointerEvents: 'none',
+              backgroundImage: `url(${logoUrl})`,
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              zIndex: 0
+            }}
+          />
+
           {/* Pink Header Block */}
           <div 
             style={{
@@ -556,7 +577,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               alignItems: 'center',
               gap: '12px',
               borderBottom: '1.5px solid #C99A4A',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              zIndex: 1
             }}
           >
             <img 
@@ -566,7 +588,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                border: '1.5px solid #FFD700',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 objectFit: 'contain',
                 flexShrink: 0
@@ -584,7 +606,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   color: '#FFFFFF',
                   fontFamily: 'Georgia, serif',
                   letterSpacing: '0.5px',
-                  lineHeight: '1.3'
+                  lineHeight: '1.3',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.2)'
                 }}
               >
                 {orgName}
@@ -593,7 +616,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 style={{
                   margin: '4px 0 0 0',
                   fontSize: '10px',
-                  color: 'rgba(255, 255, 255, 0.9)',
+                  color: '#FFD700',
                   fontStyle: 'italic',
                   fontFamily: 'Georgia, serif',
                   lineHeight: '1.3'
@@ -611,7 +634,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               padding: '6px 16px',
               borderBottom: '1px solid rgba(201, 154, 74, 0.4)',
               textAlign: 'center',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              zIndex: 1
             }}
           >
             <h2 
@@ -621,22 +645,30 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 fontWeight: 900,
                 color: '#FFD700',
                 letterSpacing: '1px',
-                fontFamily: 'Georgia, serif'
+                fontFamily: 'Georgia, serif',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }}
             >
               {orgAssociation}
             </h2>
           </div>
 
-          {/* Receipt Body fields (English Labels, Telugu handwritten values) */}
+          {/* Inner Golden Border Box (Glassmorphic) */}
           <div 
             style={{
-              padding: '16px',
+              margin: '10px 12px 14px 12px',
+              border: '1px dashed rgba(201, 154, 74, 0.65)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              backgroundColor: 'rgba(255, 255, 255, 0.75)',
+              backdropFilter: 'blur(6px)',
+              position: 'relative',
+              zIndex: 1,
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
-              textAlign: 'left',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              boxShadow: 'inset 0 0 20px rgba(201, 154, 74, 0.02)'
             }}
           >
             
@@ -646,21 +678,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 fontSize: '10px',
-                color: '#666666',
+                color: '#9A7B44',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.8px'
               }}
             >
               <span>Receipt No: <span style={{ fontFamily: 'monospace', color: '#111111', fontSize: '11px', fontWeight: 'bold' }}>#{receiptPrefix}-{displayId}</span></span>
               <span>Date: <span style={{ fontFamily: 'monospace', color: '#111111', fontSize: '11px', fontWeight: 'bold' }}>{date}</span></span>
             </div>
 
-            <hr style={{ border: 0, borderTop: '1px solid rgba(0,0,0,0.15)', margin: 0 }} />
+            <hr style={{ border: 0, borderTop: '1px solid rgba(201,154,74,0.2)', margin: 0 }} />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Received with thanks from:</span>
+                <span style={{ fontSize: '9px', color: '#9A7B44', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Received with thanks from:</span>
                 <span 
                   style={{
                     fontFamily: 'Georgia, serif',
@@ -669,10 +701,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     color: '#1e3a8a',
                     fontSize: '13px',
                     letterSpacing: '0.5px',
-                    backgroundColor: 'rgba(219, 234, 254, 0.4)',
+                    backgroundColor: 'rgba(219, 234, 254, 0.45)',
                     padding: '6px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(30, 58, 138, 0.1)',
+                    border: '1px solid rgba(30, 58, 138, 0.15)',
                     display: 'block'
                   }}
                 >
@@ -681,7 +713,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Town / Village:</span>
+                <span style={{ fontSize: '9px', color: '#9A7B44', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Town / Village:</span>
                 <span 
                   style={{
                     fontFamily: 'Georgia, serif',
@@ -690,10 +722,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     color: '#1e3a8a',
                     fontSize: '12px',
                     letterSpacing: '0.5px',
-                    backgroundColor: 'rgba(219, 234, 254, 0.4)',
+                    backgroundColor: 'rgba(219, 234, 254, 0.45)',
                     padding: '6px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(30, 58, 138, 0.1)',
+                    border: '1px solid rgba(30, 58, 138, 0.15)',
                     display: 'block'
                   }}
                 >
@@ -702,7 +734,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sum of Rupees:</span>
+                <span style={{ fontSize: '9px', color: '#9A7B44', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Sum of Rupees:</span>
                 <span 
                   style={{
                     fontSize: '10px',
@@ -711,7 +743,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     backgroundColor: '#FFFFFF',
                     padding: '6px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(201,154,74,0.15)',
                     display: 'block'
                   }}
                 >
@@ -721,7 +753,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Mode:</span>
+                  <span style={{ fontSize: '9px', color: '#9A7B44', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Payment Mode:</span>
                   <span 
                     style={{
                       fontFamily: 'monospace',
@@ -729,7 +761,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                       fontWeight: 900,
                       textTransform: 'uppercase',
                       backgroundColor: '#FAF7F2',
-                      border: '1px solid rgba(0,0,0,0.15)',
+                      border: '1px solid rgba(201,154,74,0.2)',
                       padding: '4px 8px',
                       borderRadius: '4px',
                       width: 'fit-content',
@@ -741,7 +773,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Collected By:</span>
+                  <span style={{ fontSize: '9px', color: '#9A7B44', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Collected By:</span>
                   <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#111111', display: 'block' }}>
                     {collectedBy}
                   </span>
@@ -752,20 +784,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             {/* Figures Amount Box */}
             <div 
               style={{
-                backgroundColor: '#FAF7F2',
-                border: '1px solid #C99A4A',
+                backgroundColor: 'rgba(201, 154, 74, 0.07)',
+                border: '1.5px solid #C99A4A',
                 borderRadius: '12px',
                 padding: '10px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginTop: '10px',
-                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                boxShadow: '0 2px 4px rgba(201,154,74,0.05)',
                 boxSizing: 'border-box'
               }}
             >
-              <span style={{ fontSize: '9px', fontWeight: 900, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount:</span>
-              <span style={{ fontSize: '13px', fontWeight: 900, color: '#C41E3A', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '9px', fontWeight: 900, color: '#9A7B44', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Amount:</span>
+              <span style={{ fontSize: '14px', fontWeight: 900, color: '#C41E3A', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
                 ₹{amount.toLocaleString('en-IN')}/-
               </span>
             </div>
@@ -775,27 +807,29 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               {/* Seal stamp */}
               <div 
                 style={{
-                  width: '64px',
-                  height: '64px',
+                  width: '68px',
+                  height: '68px',
                   borderRadius: '50%',
-                  border: '1px dashed rgba(196, 30, 58, 0.4)',
+                  border: '2px dashed #C41E3A',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#C41E3A',
                   fontFamily: 'serif',
-                  transform: 'rotate(-12deg)',
+                  transform: 'rotate(-10deg)',
                   marginLeft: '8px',
                   userSelect: 'none',
                   flexShrink: 0,
-                  opacity: 0.8,
-                  boxSizing: 'border-box'
+                  opacity: 0.85,
+                  boxSizing: 'border-box',
+                  backgroundColor: 'rgba(196, 30, 58, 0.03)',
+                  boxShadow: '0 0 8px rgba(196, 30, 58, 0.05)'
                 }}
               >
-                <span style={{ fontSize: '5px', fontWeight: 900, letterSpacing: '0.5px' }}>TEAM GARUDA</span>
-                <CheckCircle2 style={{ width: '14px', height: '14px', margin: '2px 0' }} />
-                <span style={{ fontSize: '5px', fontWeight: 'bold', textTransform: 'uppercase' }}>VERIFIED</span>
+                <span style={{ fontSize: '5.5px', fontWeight: 900, letterSpacing: '0.6px' }}>TEAM GARUDA</span>
+                <CheckCircle2 style={{ width: '15px', height: '15px', margin: '2px 0', color: '#005A36' }} />
+                <span style={{ fontSize: '5.5px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>VERIFIED</span>
               </div>
 
               {/* Signature label */}
