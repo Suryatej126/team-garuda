@@ -94,8 +94,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [sharingImage, setSharingImage] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
-
-
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isOpen && token) {
@@ -108,6 +107,34 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         .catch(err => console.error('Error fetching receipt settings:', err));
     }
   }, [isOpen, token]);
+
+  // Pre-generate and cache the receipt image file in the background
+  useEffect(() => {
+    if (isOpen && contribution) {
+      setReceiptFile(null);
+      const timer = setTimeout(async () => {
+        if (!receiptRef.current) return;
+        try {
+          const canvas = await html2canvas(receiptRef.current, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#FAF7F2'
+          });
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const prefix = settings?.receipt_prefix || 'TG-CH';
+              const fileName = `Receipt_${prefix}_${contribution.id}.png`;
+              const file = new File([blob], fileName, { type: 'image/png' });
+              setReceiptFile(file);
+            }
+          }, 'image/png');
+        } catch (err) {
+          console.error('Error pre-generating receipt image:', err);
+        }
+      }, 600); // 600ms delay to ensure the DOM is fully loaded and fonts are rendered
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, contribution, settings, receiptRef]);
 
   if (!isOpen || !contribution) return null;
 
@@ -175,68 +202,65 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
   const handleShareImage = async () => {
-    if (!receiptRef.current) return;
+    if (!receiptFile) {
+      // If not generated yet, fall back to direct text sharing
+      handleShareWhatsApp();
+      return;
+    }
     setSharingImage(true);
     try {
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#FAF7F2'
-      });
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
+      // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
+      if (navigator.canShare && navigator.canShare({ files: [receiptFile] })) {
+        try {
+          await navigator.share({
+            files: [receiptFile],
+            title: `${orgName} - Official Receipt`,
+            text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${id} for ₹${amount.toLocaleString('en-IN')}/-`
+          });
           setSharingImage(false);
           return;
+        } catch (shareErr) {
+          console.log('Native share canceled or fallback needed:', shareErr);
         }
+      }
 
-        const fileName = `Receipt_${receiptPrefix}_${id}.png`;
-        const file = new File([blob], fileName, { type: 'image/png' });
+      // Desktop Fallback: Download the high-res PNG image and open WhatsApp
+      const url = URL.createObjectURL(receiptFile);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = receiptFile.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-        // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: `${orgName} - Official Receipt`,
-              text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${id} for ₹${amount.toLocaleString('en-IN')}/-`
-            });
-            setSharingImage(false);
-            return;
-          } catch (shareErr) {
-            console.log('Native share canceled or fallback needed:', shareErr);
-          }
-        }
-
-        // Desktop Fallback: Download the high-res PNG image and open WhatsApp
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        handleShareWhatsApp();
-        setSharingImage(false);
-      }, 'image/png');
+      handleShareWhatsApp();
     } catch (err) {
-      console.error('Error generating image:', err);
+      console.error('Error sharing image:', err);
+    } finally {
       setSharingImage(false);
     }
   };
 
+  const formatWhatsAppPhone = (phone: string | null | undefined): string => {
+    if (!phone) return '';
+    const cleanPhone = phone.replace(/\D/g, ''); // keep digits only
+    if (cleanPhone.length === 10) {
+      return `91${cleanPhone}`;
+    }
+    return cleanPhone;
+  };
+
   // Generate and Share via WhatsApp Click-to-Chat (Text version)
   const handleShareWhatsApp = () => {
-    const message = `🚩 *${orgName.toUpperCase()} ${orgSubtitle.toUpperCase()}* 🚩\n` +
+    const message = `🚩 *${orgName} ${orgSubtitle}* 🚩\n` +
       `*${orgAssociation}*\n\n` +
       `*OFFICIAL DONATION RECEIPT*\n` +
       `---------------------------------------\n` +
       `*Receipt No:* #${receiptPrefix}-${id}\n` +
       `*Date:* ${date}\n` +
-      `*Received with thanks from:* ${name}\n` +
-      `*Town / Village:* ${town}\n` +
+      `*Received with thanks from:* ${rawName}\n` +
+      `*Town / Village:* ${rawTown}\n` +
       `*Sum of Rupees:* ${amountInWords}\n` +
       `*Donation Amount:* ₹${amount.toLocaleString('en-IN')}/-\n` +
       `*Payment Mode:* ${paymentMethod}\n` +
@@ -245,9 +269,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       `Thank you for your generous contribution! Your support is highly appreciated. 🙏\n\n` +
       `_This is a digitally generated official receipt._`;
 
-    // By not specifying a phone number, WhatsApp opens a contact and group picker,
-    // allowing the user to select one or multiple contacts/groups.
-    const shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    const donorPhone = contribution.donor_phone || contribution.contributor?.phone || '';
+    const cleanedPhone = formatWhatsAppPhone(donorPhone);
+    const shareUrl = cleanedPhone 
+      ? `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(message)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
 
     window.open(shareUrl, '_blank');
   };

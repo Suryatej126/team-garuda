@@ -23,7 +23,7 @@ class Member(Base):
     id = Column(Integer, primary_key=True, index=True)
     member_id = Column(String(20), unique=True, nullable=False, index=True)
     name = Column(String(100), nullable=False)
-    phone = Column(String(20), nullable=False)
+    phone = Column(String(20), nullable=True)
     pin_hash = Column(String(255), nullable=False)
     status = Column(String(20), default='ACTIVE', index=True)  # 'ACTIVE', 'INACTIVE'
     created_at = Column(TIMESTAMP, server_default=func.now())

@@ -15,38 +15,8 @@ import { Expenses } from './pages/Expenses';
 import { AdminSettings } from './pages/AdminSettings';
 
 const ScreenTransitionContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const prevPath = useRef(location.pathname);
-  const transitionCount = useRef(0);
-
-  useEffect(() => {
-    if (prevPath.current !== location.pathname) {
-      prevPath.current = location.pathname;
-      transitionCount.current += 1;
-      
-      // Only show loader 1 in every 5 screen switches (1:5 ratio) for snappy navigation
-      if (transitionCount.current % 5 === 1) {
-        setIsTransitioning(true);
-        const timer = setTimeout(() => {
-          setIsTransitioning(false);
-        }, 900); // 0.9s clean transition
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [location.pathname]);
-
   return (
     <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-      {isTransitioning && (
-        <div className="absolute inset-0 z-50 animate-fade-in">
-          <GaneshaLoader 
-            message="TEAM GARUDA" 
-            subMessage="Sri Ganesha Krupa" 
-            isFullPage={false} 
-          />
-        </div>
-      )}
       {children}
     </div>
   );

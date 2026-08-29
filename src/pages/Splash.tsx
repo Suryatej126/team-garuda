@@ -9,7 +9,7 @@ export const Splash: React.FC<SplashProps> = ({ onFinish }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
-    }, 1400); // 1.4s initial divine splash
+    }, 400); // 0.4s initial divine splash
     return () => clearTimeout(timer);
   }, [onFinish]);
 

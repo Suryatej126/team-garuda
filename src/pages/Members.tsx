@@ -99,6 +99,80 @@ export const Members: React.FC = () => {
   const [eventId, setEventId] = useState('');
   const [notes, setNotes] = useState('');
   const [collectedBy, setCollectedBy] = useState('');
+
+  // --- Admin Quick Member Registration states ---
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [newMemberId, setNewMemberId] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberPhone, setNewMemberPhone] = useState('');
+  const [newMemberPin, setNewMemberPin] = useState('123456');
+  const [quickAddError, setQuickAddError] = useState('');
+  const [quickAdding, setQuickAdding] = useState(false);
+
+  const generateNextMemberId = (currentMembers: any[]): string => {
+    let maxNum = 0;
+    currentMembers.forEach(m => {
+      const match = m.member_id.match(/TG(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    return `TG${String(maxNum + 1).padStart(3, '0')}`;
+  };
+
+  const handleQuickAddMember = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim()) {
+      setQuickAddError('Please enter member name.');
+      return;
+    }
+    if (!newMemberId.trim()) {
+      setQuickAddError('Please enter member ID.');
+      return;
+    }
+    setQuickAddError('');
+    setQuickAdding(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/committee/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          member_id: newMemberId.trim(),
+          name: newMemberName.trim(),
+          phone: newMemberPhone.trim() || null,
+          pin: newMemberPin || '123456',
+          status: 'ACTIVE'
+        })
+      });
+
+      if (res.ok) {
+        const savedMember = await res.json();
+        // Refresh the members list
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const mRes = await fetch(`${API_BASE_URL}/api/committee/members`, { headers });
+        if (mRes.ok) {
+          const updatedMembers = await mRes.json();
+          setMembers(updatedMembers);
+        }
+        
+        // Auto select the new member in Collected By dropdown
+        setCollectedBy(savedMember.name);
+        setIsAddMemberOpen(false);
+      } else {
+        const errData = await res.json();
+        setQuickAddError(errData.detail || 'Failed to register member.');
+      }
+    } catch (err) {
+      setQuickAddError('Network error. Failed to add member.');
+    } finally {
+      setQuickAdding(false);
+    }
+  };
+
   const [selectedContributorId, setSelectedContributorId] = useState<number | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1082,19 +1156,113 @@ export const Members: React.FC = () => {
           </div>
 
           {/* Collected By */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Collected By</label>
-            <select
-              value={collectedBy}
-              onChange={e => setCollectedBy(e.target.value)}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon font-semibold text-primary-text cursor-pointer"
-            >
-              <option value="">Select Committee Member...</option>
-              {members.map(m => (
-                <option key={m.id} value={m.name}>{m.name}</option>
-              ))}
-            </select>
-          </div>
+          {isAddMemberOpen ? (
+            <div className="bg-secondary-bg border border-border-custom p-3.5 rounded-2xl flex flex-col gap-3 text-left my-2">
+              <div className="flex justify-between items-center pb-1">
+                <h5 className="text-[10px] font-black uppercase tracking-wider text-primary-maroon">Quick Register Member</h5>
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddMemberOpen(false)}
+                  className="text-[9px] font-bold text-secondary-text hover:text-error transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-extrabold uppercase tracking-widest text-secondary-text">Member ID</label>
+                  <input 
+                    type="text"
+                    value={newMemberId}
+                    onChange={e => setNewMemberId(e.target.value)}
+                    className="bg-white border border-border-custom rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-primary-text"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-extrabold uppercase tracking-widest text-secondary-text">PIN Code</label>
+                  <input 
+                    type="text"
+                    value={newMemberPin}
+                    onChange={e => setNewMemberPin(e.target.value)}
+                    className="bg-white border border-border-custom rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-primary-text font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-extrabold uppercase tracking-widest text-secondary-text">Name</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Naveen"
+                  value={newMemberName}
+                  onChange={e => setNewMemberName(e.target.value)}
+                  className="bg-white border border-border-custom rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-primary-text"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-extrabold uppercase tracking-widest text-secondary-text">Phone (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. 99xxxxxx"
+                  value={newMemberPhone}
+                  onChange={e => setNewMemberPhone(e.target.value)}
+                  className="bg-white border border-border-custom rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-primary-text font-mono"
+                />
+              </div>
+
+              {quickAddError && (
+                <span className="text-[9px] text-error font-extrabold">{quickAddError}</span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleQuickAddMember}
+                disabled={quickAdding}
+                className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-[10px] py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center"
+              >
+                {quickAdding ? (
+                  <div className="w-3 h-3 rounded-full border border-white border-t-transparent animate-spin" />
+                ) : (
+                  <span>Save & Select Member</span>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Collected By</label>
+                {user?.role === 'ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewMemberId(generateNextMemberId(members));
+                      setNewMemberName('');
+                      setNewMemberPhone('');
+                      setNewMemberPin('123456');
+                      setQuickAddError('');
+                      setIsAddMemberOpen(true);
+                    }}
+                    className="text-[9px] font-black text-primary-maroon uppercase tracking-wider hover:underline flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                    <span>Add Member</span>
+                  </button>
+                )}
+              </div>
+              <select
+                value={collectedBy}
+                onChange={e => setCollectedBy(e.target.value)}
+                className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon font-semibold text-primary-text cursor-pointer"
+              >
+                <option value="">Select Committee Member...</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {formError && (
             <div className="bg-error/10 border border-error/20 text-error text-[10px] px-3.5 py-3 rounded-xl">

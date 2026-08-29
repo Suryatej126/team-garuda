@@ -62,7 +62,7 @@ class MemberResponse(BaseModel):
     id: int
     member_id: str
     name: str
-    phone: str
+    phone: Optional[str] = None
     status: str
     created_at: datetime.datetime
 
@@ -72,7 +72,7 @@ class MemberResponse(BaseModel):
 class MemberCreate(BaseModel):
     member_id: str
     name: str
-    phone: str
+    phone: Optional[str] = None
     pin: str
     status: Optional[str] = "ACTIVE"
 
@@ -425,14 +425,23 @@ def get_finance_summary(year: Optional[int] = None, db: Session = Depends(get_db
 # Helper to synchronize committee users into Member and Contributor tables
 def sync_users_to_members(db: Session):
     committee_users = db.query(User).filter(User.role.in_(["COMMITTEE", "ADMIN"])).all()
+    
+    # Pre-fetch existing names to minimize DB roundtrips
+    existing_members = {m[0].lower() for m in db.query(Member.name).all()}
+    existing_contribs = {c[0].lower() for c in db.query(Contributor.name).all()}
+    
+    member_count = len(existing_members)
+    needs_commit = False
+    
     for u in committee_users:
         if u.username.lower() == "admin":
             continue
         member_name = u.username.capitalize()
-        existing_member = db.query(Member).filter(Member.name.ilike(member_name)).first()
-        if not existing_member:
-            count = db.query(Member).count() + 1
-            new_member_id = f"TG{count:03d}"
+        member_name_lower = member_name.lower()
+        
+        if member_name_lower not in existing_members:
+            member_count += 1
+            new_member_id = f"TG{member_count:03d}"
             new_member = Member(
                 member_id=new_member_id,
                 name=member_name,
@@ -441,13 +450,17 @@ def sync_users_to_members(db: Session):
                 status="ACTIVE"
             )
             db.add(new_member)
-            db.commit()
-
-        existing_contrib = db.query(Contributor).filter(Contributor.name.ilike(member_name)).first()
-        if not existing_contrib:
+            existing_members.add(member_name_lower)
+            needs_commit = True
+            
+        if member_name_lower not in existing_contribs:
             new_contrib = Contributor(name=member_name, phone=None)
             db.add(new_contrib)
-            db.commit()
+            existing_contribs.add(member_name_lower)
+            needs_commit = True
+            
+    if needs_commit:
+        db.commit()
 
 # Member Management
 @app.get("/api/committee/members", response_model=List[MemberResponse])
