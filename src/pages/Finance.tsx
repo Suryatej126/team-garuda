@@ -318,6 +318,20 @@ export const Finance: React.FC = () => {
     setIsSheetOpen(true);
   };
 
+  // Open Sheet for EDIT Public Donation (Chandhalu)
+  const openEditChandha = (item: Chandha) => {
+    setEditingId(item.id);
+    setFormError('');
+    setChName(item.donor_name || '');
+    setChPhone(item.donor_phone || '');
+    setChAmount(String(item.amount));
+    setChDate(item.date);
+    setChMethod(item.payment_method);
+    setChNotes(item.notes || '');
+    setChCollectedBy(item.collected_by || '');
+    setIsSheetOpen(true);
+  };
+
   // Helper to extract parsed details for Committee Contributions
   const parseCommitteeDetails = (item: Contribution) => {
     let pendingAmount = 0;
@@ -500,8 +514,14 @@ export const Finance: React.FC = () => {
           collected_by: chCollectedBy || null
         };
 
-        const res = await fetch(`${API_BASE_URL}/api/committee/chandhalu`, {
-          method: 'POST',
+        const url = editingId 
+          ? `${API_BASE_URL}/api/committee/chandhalu/${editingId}`
+          : `${API_BASE_URL}/api/committee/chandhalu`;
+        
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
           headers,
           body: JSON.stringify(payload)
         });
@@ -1043,6 +1063,13 @@ export const Finance: React.FC = () => {
                             title="Receipt / Share"
                           >
                             <Share2 className="w-3.5 h-3.5 text-success" />
+                          </button>
+                          <button 
+                            onClick={() => openEditChandha(item)}
+                            className="p-1 rounded-full text-secondary-text hover:text-primary-maroon active:scale-90 cursor-pointer"
+                            title="Edit Public Donation"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button 
                             onClick={() => handleDelete('CHANDHA', item.id)}
