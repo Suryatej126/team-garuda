@@ -497,85 +497,255 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       <div className="flex flex-col gap-5 select-text pb-4">
         
         {/* Visual Receipt Card layout matching the custom Telugu mockup */}
-        <div ref={receiptRef} className="w-full bg-[#FAF7F2] border border-[#C99A4A] rounded-2xl overflow-hidden shadow-md flex flex-col relative select-text">
+        <div 
+          ref={receiptRef} 
+          style={{
+            width: '100%',
+            maxWidth: '380px',
+            margin: '0 auto',
+            backgroundColor: '#FAF7F2',
+            border: '2px solid #C99A4A',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            boxSizing: 'border-box',
+            paddingRight: '10px'
+          }}
+        >
           
           {/* Filigree right border graphic */}
-          <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-gradient-to-b from-[#C99A4A]/40 to-[#C99A4A]/20 border-l border-[#C99A4A]/30 flex flex-col items-center justify-around py-2 shrink-0">
+          <div 
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: '10px',
+              background: 'linear-gradient(to bottom, rgba(201, 154, 74, 0.4), rgba(201, 154, 74, 0.2))',
+              borderLeft: '1px solid rgba(201, 154, 74, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              padding: '8px 0',
+              boxSizing: 'border-box'
+            }}
+          >
             {[...Array(12)].map((_, i) => (
-              <div key={i} className="w-1 h-1 rounded-full bg-[#C99A4A]" />
+              <div 
+                key={i} 
+                style={{
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '50%',
+                  backgroundColor: '#C99A4A'
+                }} 
+              />
             ))}
           </div>
 
           {/* Pink Header Block */}
-          <div className="bg-[#C41E3A] px-4 py-3 flex items-center gap-3 border-b border-[#C99A4A] pr-6">
+          <div 
+            style={{
+              backgroundColor: '#C41E3A',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              borderBottom: '1.5px solid #C99A4A',
+              boxSizing: 'border-box'
+            }}
+          >
             <img 
               src={logoUrl} 
               alt="Logo" 
-              className="w-12 h-12 rounded-full border border-white/20 bg-white/10 object-contain shrink-0"
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                objectFit: 'contain',
+                flexShrink: 0
+              }}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/logo.png';
               }}
             />
-            <div className="flex-1 min-w-0 text-left">
-              <h1 className="text-sm font-black text-white leading-tight font-serif tracking-wide block truncate">
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+              <h1 
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  color: '#FFFFFF',
+                  fontFamily: 'Georgia, serif',
+                  letterSpacing: '0.5px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {orgName}
               </h1>
-              <p className="text-[10px] text-white/90 italic font-serif leading-none mt-0.5 block truncate">
+              <p 
+                style={{
+                  margin: '2px 0 0 0',
+                  fontSize: '10px',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  fontStyle: 'italic',
+                  fontFamily: 'Georgia, serif',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {orgSubtitle}
               </p>
             </div>
           </div>
 
           {/* Green Association Banner */}
-          <div className="bg-[#005A36] px-4 py-1.5 border-b border-[#C99A4A]/40 text-center pr-6">
-            <h2 className="text-[10px] font-black text-[#FFD700] tracking-wider font-serif">
+          <div 
+            style={{
+              backgroundColor: '#005A36',
+              padding: '6px 16px',
+              borderBottom: '1px solid rgba(201, 154, 74, 0.4)',
+              textAlign: 'center',
+              boxSizing: 'border-box'
+            }}
+          >
+            <h2 
+              style={{
+                margin: 0,
+                fontSize: '11px',
+                fontWeight: 900,
+                color: '#FFD700',
+                letterSpacing: '1px',
+                fontFamily: 'Georgia, serif'
+              }}
+            >
               {orgAssociation}
             </h2>
           </div>
 
           {/* Receipt Body fields (English Labels, Telugu handwritten values) */}
-          <div className="p-4 flex flex-col gap-3 pr-6 text-left">
+          <div 
+            style={{
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              textAlign: 'left',
+              boxSizing: 'border-box'
+            }}
+          >
             
-            <div className="flex justify-between items-center text-[10px] text-secondary-text font-bold uppercase tracking-wider">
-              <span>Receipt No: <span className="font-mono text-primary-text text-xs">#{receiptPrefix}-{displayId}</span></span>
-              <span>Date: <span className="font-mono text-primary-text text-xs">{date}</span></span>
+            <div 
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                color: '#666666',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}
+            >
+              <span>Receipt No: <span style={{ fontFamily: 'monospace', color: '#111111', fontSize: '11px', fontWeight: 'bold' }}>#{receiptPrefix}-{displayId}</span></span>
+              <span>Date: <span style={{ fontFamily: 'monospace', color: '#111111', fontSize: '11px', fontWeight: 'bold' }}>{date}</span></span>
             </div>
 
-            <hr className="border-border-custom/50" />
+            <hr style={{ border: 0, borderTop: '1px solid rgba(0,0,0,0.15)', margin: 0 }} />
 
-            <div className="flex flex-col gap-2.5 text-xs">
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Received with thanks from:</span>
-                <span className="font-serif italic font-extrabold text-blue-900 text-sm tracking-wide bg-blue-50/40 px-2 py-1.5 rounded-lg border border-blue-900/10">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Received with thanks from:</span>
+                <span 
+                  style={{
+                    fontFamily: 'Georgia, serif',
+                    fontStyle: 'italic',
+                    fontWeight: 900,
+                    color: '#1e3a8a',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(219, 234, 254, 0.4)',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(30, 58, 138, 0.1)',
+                    display: 'block'
+                  }}
+                >
                   {name}
                 </span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Town / Village:</span>
-                <span className="font-serif italic font-bold text-blue-900 text-xs tracking-wide bg-blue-50/40 px-2 py-1.5 rounded-lg border border-blue-900/10">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Town / Village:</span>
+                <span 
+                  style={{
+                    fontFamily: 'Georgia, serif',
+                    fontStyle: 'italic',
+                    fontWeight: 'bold',
+                    color: '#1e3a8a',
+                    fontSize: '12px',
+                    letterSpacing: '0.5px',
+                    backgroundColor: 'rgba(219, 234, 254, 0.4)',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(30, 58, 138, 0.1)',
+                    display: 'block'
+                  }}
+                >
                   {town}
                 </span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Sum of Rupees:</span>
-                <span className="text-[10px] font-semibold text-primary-text leading-tight bg-white px-2 py-1.5 rounded-lg border border-border-custom/60">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sum of Rupees:</span>
+                <span 
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: '#111111',
+                    backgroundColor: '#FFFFFF',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0,0,0,0.15)',
+                    display: 'block'
+                  }}
+                >
                   {amountInWords}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 mt-1">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Payment Mode:</span>
-                  <span className="font-mono text-[9px] font-black uppercase bg-[#FAF7F2] border border-border-custom px-2 py-1 rounded w-fit text-primary-text">
+              <div style={{ display: 'flex', gap: '14px', marginTop: '2px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+                  <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Mode:</span>
+                  <span 
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '9px',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      backgroundColor: '#FAF7F2',
+                      border: '1px solid rgba(0,0,0,0.15)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      width: 'fit-content',
+                      display: 'block'
+                    }}
+                  >
                     {paymentMethod}
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] text-secondary-text font-extrabold uppercase tracking-widest">Collected By:</span>
-                  <span className="text-[10px] font-bold text-primary-text truncate">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+                  <span style={{ fontSize: '9px', color: '#666666', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Collected By:</span>
+                  <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#111111', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {collectedBy}
                   </span>
                 </div>
@@ -583,26 +753,67 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             </div>
 
             {/* Figures Amount Box */}
-            <div className="bg-[#FAF7F2] border border-[#C99A4A] rounded-xl p-3 flex items-center justify-between mt-2.5 shadow-xs">
-              <span className="text-[9px] font-black text-secondary-text uppercase tracking-widest">Amount:</span>
-              <span className="text-sm font-black text-[#C41E3A] font-mono">
+            <div 
+              style={{
+                backgroundColor: '#FAF7F2',
+                border: '1px solid #C99A4A',
+                borderRadius: '12px',
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '10px',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                boxSizing: 'border-box'
+              }}
+            >
+              <span style={{ fontSize: '9px', fontWeight: 900, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount:</span>
+              <span style={{ fontSize: '13px', fontWeight: 900, color: '#C41E3A', fontFamily: 'monospace' }}>
                 ₹{amount.toLocaleString('en-IN')}/-
               </span>
             </div>
 
             {/* Stamp and signature placeholders */}
-            <div className="flex items-center justify-between mt-3">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
               {/* Seal stamp */}
-              <div className="w-16 h-16 rounded-full border border-dashed border-[#C41E3A]/40 flex flex-col items-center justify-center text-[#C41E3A] font-serif rotate-[-12deg] select-none shrink-0 opacity-80">
-                <span className="text-[5px] font-black tracking-widest">TEAM GARUDA</span>
-                <CheckCircle2 className="w-3.5 h-3.5 my-0.5" />
-                <span className="text-[5px] font-bold uppercase tracking-wider">VERIFIED</span>
+              <div 
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  border: '1px dashed rgba(196, 30, 58, 0.4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#C41E3A',
+                  fontFamily: 'serif',
+                  transform: 'rotate(-12deg)',
+                  userSelect: 'none',
+                  flexShrink: 0,
+                  opacity: 0.8,
+                  boxSizing: 'border-box'
+                }}
+              >
+                <span style={{ fontSize: '5px', fontWeight: 900, letterSpacing: '0.5px' }}>TEAM GARUDA</span>
+                <CheckCircle2 style={{ width: '14px', height: '14px', margin: '2px 0' }} />
+                <span style={{ fontSize: '5px', fontWeight: 'bold', textTransform: 'uppercase' }}>VERIFIED</span>
               </div>
 
               {/* Signature label */}
-              <div className="flex flex-col items-end">
-                <div className="w-24 border-b border-secondary-text/30 h-6 shrink-0" />
-                <span className="text-[8px] text-secondary-text font-extrabold mt-1 text-right max-w-[120px] leading-tight">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ width: '96px', borderBottom: '1px solid rgba(0,0,0,0.15)', height: '24px' }} />
+                <span 
+                  style={{
+                    fontSize: '8px',
+                    color: '#666666',
+                    fontWeight: 900,
+                    marginTop: '4px',
+                    textAlign: 'right',
+                    maxWidth: '120px',
+                    lineHeight: '1.2'
+                  }}
+                >
                   {signatureTitle}
                 </span>
               </div>
