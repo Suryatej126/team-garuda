@@ -94,6 +94,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
   const [settings, setSettings] = useState<ReceiptSetting | null>(null);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [sharingImage, setSharingImage] = useState(false);
+  const [shareSuccessMessage, setShareSuccessMessage] = useState('');
   const receiptRef = useRef<HTMLDivElement>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
@@ -229,32 +230,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     }
   };
 
-  const handleShareWhatsAppChatOnly = () => {
-    const donorPhone = contribution.donor_phone || contribution.contributor?.phone || '';
-    const cleanedPhone = formatWhatsAppPhone(donorPhone);
-    const shareUrl = cleanedPhone 
-      ? `https://api.whatsapp.com/send?phone=${cleanedPhone}`
-      : `https://api.whatsapp.com/send`;
-
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.location.href = shareUrl;
-    } else {
-      const newWindow = window.open(shareUrl, '_blank');
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        window.location.href = shareUrl;
-      }
-    }
-  };
-
   // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
   const handleShareImage = async () => {
     setSharingImage(true);
+    setShareSuccessMessage('');
     try {
       const fileToShare = receiptFile || await generateReceiptImage();
       if (!fileToShare) {
-        // Only fall back to direct text sharing if generation completely failed
-        handleShareWhatsApp();
+        alert('Failed to generate receipt image.');
         return;
       }
 
@@ -262,8 +245,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
         try {
           await navigator.share({
-            files: [fileToShare]
+            files: [fileToShare],
+            title: `${orgName} - Official Receipt`,
+            text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${displayId}`
           });
+          setShareSuccessMessage('✓ Shared Successfully!');
+          setTimeout(() => setShareSuccessMessage(''), 3000);
           return;
         } catch (shareErr: any) {
           console.log('Native share error:', shareErr);
@@ -274,7 +261,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         }
       }
 
-      // Desktop Fallback: Copy image to clipboard, download the high-res PNG image, and open WhatsApp
+      // Desktop/Unsupported Mobile Fallback: Copy to clipboard and download image
+      let copied = false;
       if (navigator.clipboard && navigator.clipboard.write) {
         try {
           await navigator.clipboard.write([
@@ -282,6 +270,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
               [fileToShare.type]: fileToShare
             })
           ]);
+          copied = true;
         } catch (clipErr) {
           console.log('Clipboard copy failed:', clipErr);
         }
@@ -296,7 +285,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      handleShareWhatsAppChatOnly();
+      if (copied) {
+        setShareSuccessMessage('✓ Copied & Downloaded! Paste in WhatsApp.');
+      } else {
+        setShareSuccessMessage('✓ Image Downloaded! Share from gallery.');
+      }
+      setTimeout(() => setShareSuccessMessage(''), 4000);
     } catch (err) {
       console.error('Error sharing image:', err);
     } finally {
@@ -620,18 +614,27 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2.5 shrink-0">
-          {/* Primary Button: Share Image (Native share on mobile or PNG download + WhatsApp on desktop) */}
           <button
             onClick={handleShareImage}
             disabled={sharingImage}
-            className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-60"
+            className={`w-full text-white py-3.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-60 ${
+              shareSuccessMessage ? 'bg-success hover:bg-success-dark animate-pulse' : 'bg-[#25D366] hover:bg-[#20ba5a]'
+            }`}
           >
             {sharingImage ? (
               <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : shareSuccessMessage ? (
+              <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
             ) : (
               <ImageIcon className="w-4 h-4" />
             )}
-            <span>{sharingImage ? 'Preparing Receipt Image...' : 'Share Receipt Image (WhatsApp / Groups)'}</span>
+            <span>
+              {sharingImage 
+                ? 'Preparing Receipt Image...' 
+                : shareSuccessMessage 
+                  ? shareSuccessMessage 
+                  : 'Share Receipt Image (WhatsApp / Groups)'}
+            </span>
           </button>
 
           <div className="grid grid-cols-2 gap-2.5">
