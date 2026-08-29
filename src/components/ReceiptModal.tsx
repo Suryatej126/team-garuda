@@ -34,6 +34,7 @@ interface ReceiptModalProps {
       phone: string | null;
     };
   } | null;
+  receiptNumber?: number;
 }
 
 const englishToTelugu = (text: string): string => {
@@ -88,7 +89,7 @@ const englishToTelugu = (text: string): string => {
   return translatedWords.join(' ');
 };
 
-export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, contribution }) => {
+export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, contribution, receiptNumber }) => {
   const { token } = useAuth();
   const [settings, setSettings] = useState<ReceiptSetting | null>(null);
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -140,6 +141,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   // Map values robustly from either Chandha or Contribution shape
   const id = contribution.id;
+  const displayId = receiptNumber !== undefined ? receiptNumber : id;
   const amount = Number(contribution.amount);
   const date = contribution.date;
   const paymentMethod = contribution.payment_method;
@@ -210,17 +212,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     setSharingImage(true);
     try {
       // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
-      if (navigator.canShare && navigator.canShare({ files: [receiptFile] })) {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [receiptFile] })) {
         try {
           await navigator.share({
             files: [receiptFile],
             title: `${orgName} - Official Receipt`,
-            text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${id} for ₹${amount.toLocaleString('en-IN')}/-`
+            text: `🚩 *${orgName}* - Official Receipt #${receiptPrefix}-${displayId} for ₹${amount.toLocaleString('en-IN')}/-`
           });
-          setSharingImage(false);
           return;
-        } catch (shareErr) {
-          console.log('Native share canceled or fallback needed:', shareErr);
+        } catch (shareErr: any) {
+          console.log('Native share error:', shareErr);
+          // If the user cancelled/aborted, do not proceed with fallback download
+          if (shareErr.name === 'AbortError') {
+            return;
+          }
         }
       }
 
@@ -257,7 +262,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       `*${orgAssociation}*\n\n` +
       `*OFFICIAL DONATION RECEIPT*\n` +
       `---------------------------------------\n` +
-      `*Receipt No:* #${receiptPrefix}-${id}\n` +
+      `*Receipt No:* #${receiptPrefix}-${displayId}\n` +
       `*Date:* ${date}\n` +
       `*Received with thanks from:* ${rawName}\n` +
       `*Town / Village:* ${rawTown}\n` +
@@ -275,7 +280,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       ? `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(message)}`
       : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
 
-    window.open(shareUrl, '_blank');
+    // Device-specific routing for popup blocker bypass
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = shareUrl;
+    } else {
+      const newWindow = window.open(shareUrl, '_blank');
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        // Fallback for desktop popup blockers
+        window.location.href = shareUrl;
+      }
+    }
   };
 
   // Generate and Download PDF using jsPDF (A5 Portrait style)
@@ -350,7 +365,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         doc.setTextColor(60, 60, 60);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
-        doc.text(`Receipt No: #${receiptPrefix}-${id}`, 15, 62);
+        doc.text(`Receipt No: #${receiptPrefix}-${displayId}`, 15, 62);
         doc.text(`Date: ${date}`, pgW - 18, 62, { align: 'right' });
 
         // Details lines
@@ -412,7 +427,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         doc.line(pgW - 60, 176, pgW - 18, 176);
 
         // Save PDF
-        doc.save(`Receipt_${receiptPrefix}_${id}.pdf`);
+        doc.save(`Receipt_${receiptPrefix}_${displayId}.pdf`);
         setPdfGenerating(false);
       };
     } catch (e) {
@@ -471,7 +486,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
           <div className="p-4 flex flex-col gap-3 pr-6 text-left">
             
             <div className="flex justify-between items-center text-[10px] text-secondary-text font-bold uppercase tracking-wider">
-              <span>Receipt No: <span className="font-mono text-primary-text text-xs">#{receiptPrefix}-{id}</span></span>
+              <span>Receipt No: <span className="font-mono text-primary-text text-xs">#{receiptPrefix}-{displayId}</span></span>
               <span>Date: <span className="font-mono text-primary-text text-xs">{date}</span></span>
             </div>
 

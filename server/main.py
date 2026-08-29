@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr
 
 from .database import get_db, engine
 from .config import ALLOWED_ORIGINS, UPLOAD_DIR
-from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor, ReceiptSetting
+from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor, ReceiptSetting, AuditLog
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, require_committee
 from .storage import storage_client
 
@@ -309,6 +309,18 @@ class ReceiptSettingUpdate(BaseModel):
     signature_title: Optional[str] = None
     logo_url: Optional[str] = None
 
+
+class AuditLogResponse(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    username: str
+    action: str
+    details: str
+    timestamp: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
 # --- Routes ---
 
 
@@ -462,6 +474,28 @@ def sync_users_to_members(db: Session):
     if needs_commit:
         db.commit()
 
+
+# Helper to record actions in audit_logs
+def log_action(db: Session, user: User, action: str, details: str):
+    try:
+        log = AuditLog(
+            user_id=user.id if user else None,
+            username=user.username if user else "System",
+            action=action,
+            details=details
+        )
+        db.add(log)
+        db.commit()
+    except Exception as log_err:
+        print(f"Failed to log action: {log_err}")
+
+
+# Audit Logs endpoint
+@app.get("/api/committee/audit-logs", response_model=List[AuditLogResponse])
+def get_audit_logs(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
+    return db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(150).all()
+
+
 # Member Management
 @app.get("/api/committee/members", response_model=List[MemberResponse])
 def get_members(db: Session = Depends(get_db), current_user: User = Depends(require_committee)):
@@ -502,6 +536,7 @@ def create_member(member_data: MemberCreate, db: Session = Depends(get_db), curr
         db.add(contributor)
         db.commit()
         
+    log_action(db, current_user, "ADD_MEMBER", f"Registered new member {member.name} ({member.member_id})")
     return member
 
 @app.put("/api/committee/members/{member_id}", response_model=MemberResponse)
@@ -539,6 +574,7 @@ def update_member(member_id: int, member_data: MemberUpdate, db: Session = Depen
         if member_data.phone is not None:
             contributor.phone = member_data.phone
         db.commit()
+    log_action(db, current_user, "UPDATE_MEMBER", f"Updated member {member.name} ({member.member_id})")
         
     return member
 
@@ -652,6 +688,7 @@ def create_contribution(contrib_data: ContributionCreate, db: Session = Depends(
     db.add(contrib)
     db.commit()
     db.refresh(contrib)
+    log_action(db, current_user, "ADD_CONTRIBUTION", f"Recorded contribution of ₹{contrib.amount} from member {contributor.name}")
     return contrib
 
 @app.put("/api/committee/contributions/{contrib_id}", response_model=ContributionResponse)
@@ -707,6 +744,7 @@ def update_contribution(contrib_id: int, contrib_data: ContributionUpdate, db: S
         
     db.commit()
     db.refresh(contrib)
+    log_action(db, current_user, "UPDATE_CONTRIBUTION", f"Updated contribution (ID: {contrib.id}) of member {contrib.contributor.name} to ₹{contrib.amount}")
     return contrib
 
 @app.delete("/api/committee/contributions/{contrib_id}")
@@ -716,6 +754,7 @@ def delete_contribution(contrib_id: int, db: Session = Depends(get_db), current_
         raise HTTPException(status_code=404, detail="Contribution not found")
     db.delete(contrib)
     db.commit()
+    log_action(db, current_user, "DELETE_CONTRIBUTION", f"Deleted contribution of member {contrib.contributor.name} for amount ₹{contrib.amount}")
     return {"message": "Contribution deleted successfully"}
 
 # Sponsorships Management
@@ -825,6 +864,7 @@ def create_chandha(chandha_data: ChandhaCreate, db: Session = Depends(get_db), c
     db.add(contrib)
     db.commit()
     db.refresh(contrib)
+    log_action(db, current_user, "ADD_CHANDHA", f"Added public donation of ₹{contrib.amount} from {contributor.name}")
     return map_contribution_to_chandha(contrib)
 
 @app.put("/api/committee/chandhalu/{chandha_id}", response_model=ChandhaResponse)
@@ -864,6 +904,7 @@ def update_chandha(chandha_id: int, chandha_data: ChandhaUpdate, db: Session = D
         
     db.commit()
     db.refresh(contrib)
+    log_action(db, current_user, "UPDATE_CHANDHA", f"Updated public donation (ID: {contrib.id}) of {contrib.contributor.name} to ₹{contrib.amount}")
     return map_contribution_to_chandha(contrib)
 
 @app.delete("/api/committee/chandhalu/{chandha_id}")
@@ -873,6 +914,7 @@ def delete_chandha(chandha_id: int, db: Session = Depends(get_db), current_user:
         raise HTTPException(status_code=404, detail="Public contribution record not found")
     db.delete(contrib)
     db.commit()
+    log_action(db, current_user, "DELETE_CHANDHA", f"Deleted public donation of {contrib.contributor.name} for amount ₹{contrib.amount}")
     return {"message": "Public contribution deleted successfully"}
 
 # Users lookup for expense paid_by dropdown
@@ -924,6 +966,7 @@ def create_expense(
     db.add(expense)
     db.commit()
     db.refresh(expense)
+    log_action(db, current_user, "ADD_EXPENSE", f"Recorded expense of ₹{expense.amount} for {expense.name} ({expense.category})")
     return expense
 
 @app.delete("/api/committee/expenses/{expense_id}")
@@ -938,6 +981,7 @@ def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user:
         
     db.delete(expense)
     db.commit()
+    log_action(db, current_user, "DELETE_EXPENSE", f"Deleted expense of {expense.name} for amount ₹{expense.amount}")
     return {"message": "Expense deleted successfully"}
 
 # Media Management (Upload photo/video)
@@ -1167,5 +1211,6 @@ def update_receipt_settings(setting_data: ReceiptSettingUpdate, db: Session = De
 
     db.commit()
     db.refresh(setting)
+    log_action(db, current_user, "UPDATE_SETTINGS", f"Updated system receipt template settings")
     return setting
 

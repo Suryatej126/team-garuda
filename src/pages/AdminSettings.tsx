@@ -11,6 +11,15 @@ interface UserRecord {
   role: string;
 }
 
+interface AuditLog {
+  id: number;
+  user_id: number | null;
+  username: string;
+  action: string;
+  details: string;
+  timestamp: string;
+}
+
 export const AdminSettings: React.FC = () => {
   const { user, token, logout } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -41,6 +50,27 @@ export const AdminSettings: React.FC = () => {
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
+
+  // Audit Logs State
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const fetchLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/committee/audit-logs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data);
+      }
+    } catch (err) {
+      console.error('Error fetching audit logs:', err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
@@ -121,6 +151,7 @@ export const AdminSettings: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     fetchReceiptSettings();
+    fetchLogs();
   }, [token, isAdmin]);
 
 
@@ -403,6 +434,62 @@ export const AdminSettings: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* System Activity History Section */}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex justify-between items-center">
+            <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-secondary-text">System Activity History</h4>
+            <button 
+              onClick={fetchLogs}
+              disabled={loadingLogs}
+              className="text-[9px] font-black text-primary-maroon uppercase tracking-wider hover:underline flex items-center gap-0.5 cursor-pointer"
+            >
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="bg-white border border-border-custom rounded-2xl p-4 shadow-sm max-h-[300px] overflow-y-auto flex flex-col gap-3 scrollbar-thin">
+            {loadingLogs && logs.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-2">
+                <div className="w-5 h-5 rounded-full border-2 border-t-primary-maroon border-border-custom animate-spin" />
+                <span className="text-[9px] text-secondary-text font-bold uppercase tracking-wider">Loading history logs...</span>
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="py-8 text-center text-secondary-text font-semibold text-xs">
+                No activity history records found.
+              </div>
+            ) : (
+              logs.map((log) => {
+                const logTime = new Date(log.timestamp).toLocaleString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                return (
+                  <div key={log.id} className="flex flex-col gap-1 border-b border-border-custom/50 pb-2.5 last:border-b-0 last:pb-0 text-left">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-[10px] font-extrabold text-primary-text">
+                        {log.username}
+                      </span>
+                      <span className="text-[8px] font-bold text-secondary-text uppercase tracking-wider shrink-0">
+                        {logTime}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 items-center mt-0.5">
+                      <span className="text-[8px] font-black uppercase tracking-widest bg-primary-maroon/10 border border-primary-maroon/20 text-primary-maroon px-1.5 py-0.2 rounded shrink-0">
+                        {log.action.replace(/_/g, ' ')}
+                      </span>
+                      <p className="text-[11px] font-medium text-secondary-text leading-tight flex-1">
+                        {log.details}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         {/* Configuration list options */}
         <div className="flex flex-col gap-2.5">

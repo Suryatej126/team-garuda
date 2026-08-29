@@ -81,6 +81,18 @@ export const Finance: React.FC = () => {
   const [activeReceiptContribution, setActiveReceiptContribution] = useState<any | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
+  const getReceiptNumber = (item: any) => {
+    if (!item) return undefined;
+    const sorted = [...chandhalu].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      return a.id - b.id;
+    });
+    const index = sorted.findIndex(c => c.id === item.id);
+    return index !== -1 ? index + 1 : item.id;
+  };
+
 
   // --- Committee Contribution Form states ---
   const [cMemberId, setCMemberId] = useState('');
@@ -1436,6 +1448,7 @@ export const Finance: React.FC = () => {
           setActiveReceiptContribution(null);
         }}
         contribution={activeReceiptContribution}
+        receiptNumber={activeReceiptContribution ? getReceiptNumber(activeReceiptContribution) : undefined}
       />
     </div>
   );
