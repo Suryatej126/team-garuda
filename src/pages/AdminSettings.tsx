@@ -42,10 +42,10 @@ export const AdminSettings: React.FC = () => {
   // Receipt Template Configuration states
   const [orgName, setOrgName] = useState('వినాయక చవితి');
   const [orgSubtitle, setOrgSubtitle] = useState('నవరాత్రుల మహోత్సవములు');
-  const [orgAssociation, setOrgAssociation] = useState('శ్రీ బాల బాలాజీ యువజన సంఘం');
+  const [orgAssociation, setOrgAssociation] = useState('రాజోలు - నాగార్జున స్ట్రీట్');
   const [receiptPrefix, setReceiptPrefix] = useState('TG-CH');
   const [defaultPurpose, setDefaultPurpose] = useState('Ganapathi Utsav Contributions');
-  const [signatureTitle, setSignatureTitle] = useState('Signature of Authorized Person');
+  const [signatureTitle, setSignatureTitle] = useState('సంతకం.');
   const [logoUrl, setLogoUrl] = useState('/logo.png');
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);

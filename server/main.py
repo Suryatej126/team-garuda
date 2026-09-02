@@ -1179,10 +1179,10 @@ def get_receipt_settings(db: Session = Depends(get_db), current_user: User = Dep
         setting = ReceiptSetting(
             org_name="వినాయక చవితి",
             org_subtitle="నవరాత్రుల మహోత్సవములు",
-            org_association="శ్రీ బాల బాలాజీ యువజన సంఘం",
+            org_association="రాజోలు - నాగార్జున స్ట్రీట్",
             receipt_prefix="TG-CH",
             default_purpose="Ganapathi Utsav Contributions",
-            signature_title="Signature of Authorized Person",
+            signature_title="సంతకం.",
             logo_url="/logo.png"
         )
         db.add(setting)
@@ -1198,10 +1198,10 @@ def update_receipt_settings(setting_data: ReceiptSettingUpdate, db: Session = De
         setting = ReceiptSetting(
             org_name="వినాయక చవితి",
             org_subtitle="నవరాత్రుల మహోత్సవములు",
-            org_association="శ్రీ బాల బాలాజీ యువజన సంఘం",
+            org_association="రాజోలు - నాగార్జున స్ట్రీట్",
             receipt_prefix="TG-CH",
             default_purpose="Ganapathi Utsav Contributions",
-            signature_title="Signature of Authorized Person",
+            signature_title="సంతకం.",
             logo_url="/logo.png"
         )
         db.add(setting)
