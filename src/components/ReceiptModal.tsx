@@ -37,23 +37,91 @@ interface ReceiptModalProps {
   receiptNumber?: number;
 }
 
-const englishToTelugu = (text: string): string => {
+// Convert numbers to Telugu Words (అక్షరాలా)
+export const numberToTeluguWords = (num: number): string => {
+  if (!num || isNaN(num) || num === 0) return 'సున్నా రూపాయలు మాత్రమే';
+
+  const ones = ['', 'ఒకటి', 'రెండు', 'మూడు', 'నాలుగు', 'ఐదు', 'ఆరు', 'ఏడు', 'ఎనిమిది', 'తొమ్మిది'];
+  const teens = ['పది', 'పదకొండు', 'పన్నెండు', 'పదమూడు', 'పద్నాలుగు', 'పదిహేను', 'పదహారు', 'పదిహేడు', 'పద్దెనిమిది', 'పంతొమ్మిది'];
+  const tens = ['', '', 'ఇరవై', 'ముప్పై', 'నలభై', 'యాభై', 'అరవై', 'డెబ్బై', 'ఎనభై', 'తొంబై'];
+
+  const convertTwoDigits = (n: number): string => {
+    if (n === 0) return '';
+    if (n < 10) return ones[n];
+    if (n < 20) return teens[n - 10];
+    const t = Math.floor(n / 10);
+    const o = n % 10;
+    if (o === 0) return tens[t];
+    return tens[t] + ' ' + ones[o];
+  };
+
+  const convertThreeDigits = (n: number): string => {
+    let res = '';
+    const h = Math.floor(n / 100);
+    const rest = n % 100;
+    if (h > 0) {
+      if (h === 1) res += (rest === 0 ? 'వంద ' : 'నూట ');
+      else res += ones[h] + (rest === 0 ? ' వందలు ' : ' వందల ');
+    }
+    if (rest > 0) {
+      res += convertTwoDigits(rest);
+    }
+    return res.trim();
+  };
+
+  let n = Math.floor(num);
+  let result = '';
+
+  const crore = Math.floor(n / 10000000);
+  n %= 10000000;
+  const lakh = Math.floor(n / 100000);
+  n %= 100000;
+  const thousand = Math.floor(n / 1000);
+  n %= 1000;
+
+  if (crore > 0) {
+    if (crore === 1) result += 'ఒక కోటి ';
+    else result += convertThreeDigits(crore) + ' కోట్ల ';
+  }
+
+  if (lakh > 0) {
+    if (lakh === 1) result += 'ఒక లక్ష ';
+    else result += convertThreeDigits(lakh) + ' లక్షల ';
+  }
+
+  if (thousand > 0) {
+    if (thousand === 1) result += 'వెయ్యి ';
+    else if (thousand === 2) result += 'రెండు వేల ';
+    else result += convertThreeDigits(thousand) + ' వేల ';
+  }
+
+  if (n > 0) {
+    result += convertThreeDigits(n);
+  }
+
+  return result.trim() + ' రూపాయలు మాత్రమే';
+};
+
+// Robust English to Telugu transliteration mapping
+export const englishToTelugu = (text: string): string => {
   if (!text) return '';
-  // Check if already contains Telugu unicode block (0C00-0C7F)
   if (/[\u0C00-\u0C7F]/.test(text)) {
     return text;
   }
 
   const clean = text.toLowerCase().trim();
-  
-  // Transliteration dictionary for names & locations
+
+  // Known dictionary mappings
   const dict: Record<string, string> = {
     'surya': 'సూర్య',
     'surya teja': 'సూర్య తేజ',
     'suryateja': 'సూర్య తేజ',
     'teja': 'తేజ',
+    'tejas': 'తేజస్',
     'razole': 'రాజోలు',
     'nagarjuna street': 'నాగార్జున స్ట్రీట్',
+    'nagarjuna': 'నాగార్జున',
+    'street': 'స్ట్రీట్',
     'aditya': 'ఆదిత్య',
     'narendra': 'నరేంద్ర',
     'hemaraj': 'హేమరాజ్',
@@ -87,16 +155,73 @@ const englishToTelugu = (text: string): string => {
     'bhimavaram': 'భీమవరం',
     'tatipaka': 'తాటిపాక',
     'malkipuram': 'మలికిపురం',
-    'palakollu': 'పాలకొల్లు'
+    'palakollu': 'పాలకొల్లు',
+    'srinivas': 'శ్రీనివాస్',
+    'srinivasa': 'శ్రీనివాస',
+    'prasad': 'ప్రసాద్',
+    'sai': 'సాయి',
+    'venkat': 'వెంకట్',
+    'venkatesh': 'వెంకటేష్',
+    'venkata': 'వెంకట',
+    'raju': 'రాజు',
+    'varma': 'వర్మ',
+    'reddy': 'రెడ్డి',
+    'chowdary': 'చౌదరి',
+    'naidu': 'నాయుడు',
+    'rao': 'రావు',
+    'murthy': 'మూర్తి',
+    'sharma': 'శర్మ',
+    'sastry': 'శాస్త్రి',
+    'lakshmi': 'లక్ష్మి',
+    'sita': 'సీత',
+    'durga': 'దుర్గ',
+    'bhavani': 'భవాని',
+    'manikanta': 'మణికంఠ',
+    'subrahmanyam': 'సుబ్రహ్మణ్యం',
+    'krishna': 'కృష్ణ',
+    'rama': 'రామ',
+    'ramu': 'రాము',
+    'ravi': 'రవి',
+    'kiran': 'కిరణ్',
+    'ajay': 'అజయ్',
+    'anand': 'ఆనంద్',
+    'anil': 'అనిల్',
+    'sunil': 'సునీల్',
+    'mahesh': 'మహేష్',
+    'suresh': 'సురేష్',
+    'naresh': 'నరేష్',
+    'harish': 'హరీష్',
+    'mohan': 'మోహన్',
+    'chaitanya': 'చైతన్య',
+    'tarun': 'తరుణ్',
+    'praveen': 'ప్రవీణ్',
+    'vinay': 'వినయ్',
+    'siva': 'శివ',
+    'shiva': 'శివ',
+    'sekhar': 'శేఖర్',
+    'balu': 'బాలు',
+    'babu': 'బాబు',
+    'anna': 'అన్న',
+    'annayya': 'అన్నయ్య',
+    'garu': 'గారు',
+    'cash': 'నగదు',
+    'online': 'ఆన్‌లైన్',
+    'upi': 'యూపీఐ',
+    'phonepe': 'ఫోన్‌పే',
+    'gpay': 'గూగుల్‌పే',
+    'google pay': 'గూగుల్‌పే',
+    'paytm': 'పేటీఎం'
   };
 
   if (dict[clean]) return dict[clean];
 
-  // Word-by-word fallback matching
+  // Phonetic syllables breakdown
   const words = clean.split(/\s+/);
   const translatedWords = words.map(w => {
     if (dict[w]) return dict[w];
-    return w.charAt(0).toUpperCase() + w.slice(1);
+
+    // Fallback dictionary lookup
+    return dict[w] || w.charAt(0).toUpperCase() + w.slice(1);
   });
 
   return translatedWords.join(' ');
@@ -113,7 +238,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   useEffect(() => {
     if (isOpen && token) {
-      // Fetch dynamic receipt settings from API
       fetch(`${API_BASE_URL}/api/finance/receipt-settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -123,7 +247,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     }
   }, [isOpen, token]);
 
-  // Pre-generate and cache the receipt image file in the background
+  // Pre-generate and cache the receipt image file
   useEffect(() => {
     if (isOpen && contribution) {
       setReceiptFile(null);
@@ -154,15 +278,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
 
   if (!isOpen || !contribution) return null;
 
-  // Map values robustly from either Chandha or Contribution shape
+  // Values mapping
   const id = contribution.id;
   const displayId = receiptNumber !== undefined ? receiptNumber : id;
   const amount = Number(contribution.amount);
   const date = contribution.date;
   const paymentMethod = contribution.payment_method;
-  const collectedBy = contribution.collected_by || 'N/A';
+  const collectedBy = contribution.collected_by || '';
 
-  // Format date display (e.g. DD/MM/YYYY)
+  // Format date display (DD/MM/YYYY)
   const formatDateDisplay = (dStr: string) => {
     try {
       const parts = dStr.split('-');
@@ -170,70 +294,33 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
     } catch {
-      // fallback to original
+      // fallback
     }
     return dStr;
   };
 
   const formattedDate = formatDateDisplay(date);
 
-  // Raw values & Telugu translations
+  // Raw values & pure Telugu mappings
   const rawName = contribution.donor_name || contribution.contributor?.name || 'Anonymous';
   const rawPhone = contribution.donor_phone || contribution.contributor?.phone || '';
   const rawTown = contribution.notes ? contribution.notes : 'Razole';
 
   const nameTelugu = englishToTelugu(rawName);
   const townTelugu = englishToTelugu(rawTown);
+  const paymentTelugu = englishToTelugu(paymentMethod);
+  const collectedByTelugu = collectedBy ? englishToTelugu(collectedBy) : '';
 
-  // Organization branding fallback values matching reference image
+  // Telugu Amount in words (అక్షరాలా)
+  const amountInTeluguWords = numberToTeluguWords(amount);
+
+  // Organization branding fallback values
   const orgName = settings?.org_name || 'వినాయక చవితి';
   const orgSubtitle = settings?.org_subtitle || 'నవరాత్రుల మహోత్సవములు';
   const orgAssociation = settings?.org_association || 'రాజోలు - నాగార్జున స్ట్రీట్';
   const receiptPrefix = (settings?.receipt_prefix || 'TG-CH').trim().replace(/-+$/, '');
   const signatureTitle = settings?.signature_title || 'సంతకం.';
   const logoUrl = settings?.logo_url || '/logo.png';
-
-  // Helper to convert number to English Words
-  const numberToWords = (num: number): string => {
-    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
-    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    if ((num = Math.floor(num)) === 0) return 'Zero Rupees Only';
-    
-    const translate = (n: number): string => {
-      let word = '';
-      if (n >= 100) {
-        word += a[Math.floor(n / 100)] + 'Hundred ';
-        n %= 100;
-      }
-      if (n >= 20) {
-        word += b[Math.floor(n / 10)] + ' ';
-        n %= 10;
-      }
-      if (n > 0) {
-        word += a[n];
-      }
-      return word;
-    };
-
-    let result = '';
-    if (num >= 10000000) {
-      result += translate(Math.floor(num / 10000000)) + 'Crore ';
-      num %= 10000000;
-    }
-    if (num >= 100000) {
-      result += translate(Math.floor(num / 100000)) + 'Lakh ';
-      num %= 100000;
-    }
-    if (num >= 1000) {
-      result += translate(Math.floor(num / 1000)) + 'Thousand ';
-      num %= 1000;
-    }
-    result += translate(num);
-    return result.trim() + ' Rupees Only';
-  };
-
-  const amountInWords = numberToWords(amount);
 
   const generateReceiptImage = async (): Promise<File | null> => {
     if (!receiptRef.current) return null;
@@ -263,7 +350,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     }
   };
 
-  // Generate and Share actual visual Receipt Image via Web Share API or download & WhatsApp
+  // Generate and Share actual visual Receipt Image
   const handleShareImage = async () => {
     setSharingImage(true);
     setShareSuccessMessage('');
@@ -274,26 +361,24 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
         return;
       }
 
-      // If mobile / browser Web Share API supports file sharing, open WhatsApp directly with the image!
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
         try {
           await navigator.share({
             files: [fileToShare],
             title: `${orgName} - Official Receipt`,
-            text: `🚩 *${orgName} ${orgSubtitle}* - Official Receipt #${displayId}\n*Team Garuda*`
+            text: `🚩 *${orgName} ${orgSubtitle}* - రశీదు #${displayId}\n*Team Garuda*`
           });
           setShareSuccessMessage('✓ Shared Successfully!');
           setTimeout(() => setShareSuccessMessage(''), 3000);
           return;
         } catch (shareErr: any) {
-          console.log('Native share error:', shareErr);
           if (shareErr.name === 'AbortError') {
             return;
           }
         }
       }
 
-      // Fallback: Copy to clipboard and download image
+      // Clipboard copy & download fallback
       let copied = false;
       if (navigator.clipboard && navigator.clipboard.write) {
         try {
@@ -339,25 +424,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     return cleanPhone;
   };
 
-  // Generate and Share via WhatsApp Click-to-Chat (Text version)
+  // Generate and Share via WhatsApp Click-to-Chat (Pure Telugu text)
   const handleShareWhatsApp = () => {
     const message = `🚩 *${orgName} - ${orgSubtitle}* 🚩\n` +
       `*${orgAssociation}*\n` +
       `*TEAM GARUDA*\n\n` +
-      `*రశీదు / OFFICIAL RECEIPT*\n` +
+      `*రశీదు (OFFICIAL RECEIPT)*\n` +
       `---------------------------------------\n` +
-      `*రశీదు నెం (Receipt No):* #${displayId} (${receiptPrefix}-${displayId})\n` +
-      `*తేది (Date):* ${formattedDate}\n` +
-      `*పేరు (Name):* ${nameTelugu} (${rawName})\n` +
-      `*చిరునామా (Address):* ${townTelugu}\n` +
-      `*ఫోన్ నెం (Phone):* ${rawPhone || 'N/A'}\n` +
-      `*విరాళం మొత్తం (Amount):* ₹${amount.toLocaleString('en-IN')}/-\n` +
-      `*అక్షరాలా (In Words):* ${amountInWords}\n` +
-      `*చెల్లింపు విధానం (Payment):* ${paymentMethod}\n` +
-      `*స్వీకరించినవారు (Collected By):* ${collectedBy}\n` +
+      `*రశీదు నెం:* #${displayId}\n` +
+      `*తేది:* ${formattedDate}\n` +
+      `*పేరు:* ${nameTelugu}\n` +
+      `*చిరునామా:* ${townTelugu}\n` +
+      `*ఫోన్ నెం:* ${rawPhone || '—'}\n` +
+      `*విరాళం మొత్తం:* ₹${amount.toLocaleString('en-IN')}/-\n` +
+      `*అక్షరాలా:* ${amountInTeluguWords}\n` +
+      `*చెల్లింపు విధానం:* ${paymentTelugu}\n` +
+      (collectedByTelugu ? `*స్వీకరించినవారు:* ${collectedByTelugu}\n` : '') +
       `---------------------------------------\n` +
-      `శ్రీ వినాయక స్వామి వారి కృపా కటాక్షములు మీకు మరియు మీ కుటుంబ సభ్యులకు ఎల్లప్పుడూ ఉండాలని కోరుకుంటున్నాము. ధన్యవాదములు! 🙏\n\n` +
-      `_Team Garuda - Official Digital Receipt_`;
+      `శ్రీ వినాయక స్వామి వారి దివ్య ఆశీస్సులు మీకు మరియు మీ కుటుంబ సభ్యులకు ఎల్లప్పుడూ ఉండాలని కోరుకుంటున్నాము. ధన్యవాదములు! 🙏\n\n` +
+      `_టీమ్ గరుడ - అధికారిక రశీదు_`;
 
     const donorPhone = contribution.donor_phone || contribution.contributor?.phone || '';
     const cleanedPhone = formatWhatsAppPhone(donorPhone);
@@ -376,7 +461,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
     }
   };
 
-  // Generate and Download high-resolution visual PDF using canvas
+  // Generate and Download high-resolution PDF
   const handleDownloadPDF = async () => {
     if (!receiptRef.current) return;
     setPdfGenerating(true);
@@ -398,7 +483,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Maintain aspect ratio and center on A5 landscape
       const imgProps = doc.getImageProperties(imgData);
       const imgRatio = imgProps.width / imgProps.height;
 
@@ -439,19 +523,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             maxWidth: '540px',
             margin: '0 auto',
             backgroundColor: '#FAF5E8',
-            border: '3.5px solid #8C6527',
-            borderRadius: '6px',
+            border: '3px solid #8C6527',
+            borderRadius: '4px',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'row',
             position: 'relative',
             boxSizing: 'border-box',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)',
-            fontFamily: "'Noto Serif Telugu', 'Ramabhadra', 'Suranna', Georgia, serif"
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+            fontFamily: "'Noto Serif Telugu', 'Ramabhadra', 'Suranna', Georgia, serif",
+            WebkitFontSmoothing: 'antialiased'
           }}
         >
 
-          {/* MAIN CONTENT AREA */}
+          {/* MAIN RECEIPT BODY */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
             
             {/* TOP BAR (Serial No, రశీదు, తేది) */}
@@ -486,14 +571,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   fontSize: '15px',
                   fontWeight: 900,
                   color: '#1A1A1A',
-                  fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                  fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                   letterSpacing: '0.5px'
                 }}
               >
                 రశీదు
               </div>
 
-              {/* Right "తేది" with dotted fill */}
+              {/* Right "తేది" with dotted line */}
               <div 
                 style={{
                   fontSize: '12px',
@@ -507,12 +592,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 <span>తేది:</span>
                 <span 
                   style={{
-                    borderBottom: '1px dotted #444',
+                    borderBottom: '1px dotted #333',
                     minWidth: '85px',
                     display: 'inline-block',
                     textAlign: 'center',
                     fontFamily: 'monospace',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     fontSize: '11px',
                     color: '#000000',
                     paddingBottom: '1px'
@@ -526,21 +611,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
             {/* MAROON HEADER SECTION */}
             <div 
               style={{
-                background: 'radial-gradient(ellipse at 75% 50%, #68050E 0%, #460207 60%, #2A0105 100%)',
+                background: 'radial-gradient(ellipse at 75% 50%, #68050E 0%, #460207 65%, #2A0105 100%)',
                 padding: '10px 12px 10px 10px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
                 position: 'relative',
                 borderBottom: '2px solid #8C6527',
                 boxSizing: 'border-box'
               }}
             >
-              {/* Left Side: Lord Ganesha on Lotus */}
+              {/* Left: Seated Lord Ganesha Icon Container */}
               <div 
                 style={{
-                  width: '92px',
-                  height: '92px',
+                  width: '88px',
+                  height: '88px',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -555,7 +640,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     width: '100%',
                     height: '100%',
                     objectFit: 'contain',
-                    filter: 'drop-shadow(0 2px 8px rgba(255, 215, 0, 0.45))'
+                    filter: 'drop-shadow(0 2px 6px rgba(255, 215, 0, 0.4))'
                   }}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/logo.png';
@@ -563,21 +648,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 />
               </div>
 
-              {/* Right Side: Header Texts & Badges */}
+              {/* Center / Right Header Typography */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', minWidth: 0 }}>
                 
-                {/* Main Heading: వినాయక చవితి with 3D embossed look */}
+                {/* Main Heading: వినాయక చవితి (Crisp white with golden glow) */}
                 <h1 
                   style={{
                     margin: 0,
                     fontSize: '24px',
                     fontWeight: 900,
                     color: '#FFFFFF',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
-                    letterSpacing: '0.8px',
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
+                    letterSpacing: '0.6px',
                     lineHeight: '1.2',
-                    textShadow: '0 1px 0 #FFD700, 0 2px 0 #D4AF37, 0 3px 0 #8C6527, 0 4px 6px rgba(0,0,0,0.9)',
-                    WebkitTextStroke: '0.3px #FFE57F'
+                    textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,215,0,0.45)'
                   }}
                 >
                   {orgName}
@@ -587,26 +671,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 <div 
                   style={{
                     marginTop: '4px',
-                    width: '94%',
-                    backgroundColor: '#004D25',
+                    width: '95%',
+                    backgroundColor: '#005026',
                     border: '1.5px solid #FFD700',
-                    borderRadius: '6px',
+                    borderRadius: '5px',
                     padding: '3px 8px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.4), inset 0 0 4px rgba(255,215,0,0.3)',
-                    position: 'relative',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
                     boxSizing: 'border-box'
                   }}
                 >
                   <span 
                     style={{
                       display: 'block',
-                      color: '#FFE066',
+                      color: '#FFE87A',
                       fontSize: '13px',
                       fontWeight: 900,
-                      fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                       letterSpacing: '0.5px',
                       lineHeight: '1.2',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                      textShadow: '0 1px 2px rgba(0,0,0,0.9)'
                     }}
                   >
                     {orgSubtitle}
@@ -620,15 +703,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     fontSize: '12.5px',
                     fontWeight: 900,
                     color: '#FFDF6D',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
-                    letterSpacing: '0.5px',
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
+                    letterSpacing: '0.4px',
                     textShadow: '0 1px 3px rgba(0,0,0,0.9)'
                   }}
                 >
                   {orgAssociation}
                 </div>
 
-                {/* Bottom Gold Crest Badge: Golden Wings + TEAM GARUDA */}
+                {/* Bottom Gold Crest Badge: Wings + TEAM GARUDA */}
                 <div 
                   style={{
                     marginTop: '3px',
@@ -638,7 +721,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     gap: '4px'
                   }}
                 >
-                  {/* Left Golden Wing SVG */}
+                  {/* Left Golden Wing */}
                   <svg width="22" height="12" viewBox="0 0 40 20" fill="#E5C77D">
                     <path d="M40 18 C30 18 15 15 0 0 C12 6 25 10 40 12 Z" opacity="0.9" />
                     <path d="M40 12 C28 12 16 8 5 0 C15 4 28 8 40 8 Z" />
@@ -657,7 +740,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   >
                     <span 
                       style={{
-                        fontFamily: "'Cinzel', 'Times New Roman', serif",
+                        fontFamily: "'Cinzel', Georgia, serif",
                         fontWeight: 900,
                         fontSize: '10.5px',
                         color: '#F4D03F',
@@ -670,7 +753,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     </span>
                   </div>
 
-                  {/* Right Golden Wing SVG */}
+                  {/* Right Golden Wing */}
                   <svg width="22" height="12" viewBox="0 0 40 20" fill="#E5C77D" style={{ transform: 'scaleX(-1)' }}>
                     <path d="M40 18 C30 18 15 15 0 0 C12 6 25 10 40 12 Z" opacity="0.9" />
                     <path d="M40 12 C28 12 16 8 5 0 C15 4 28 8 40 8 Z" />
@@ -702,9 +785,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   left: '50%',
                   top: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '140px',
-                  height: '140px',
-                  opacity: 0.08,
+                  width: '130px',
+                  height: '130px',
+                  opacity: 0.07,
                   pointerEvents: 'none',
                   backgroundImage: `url(${logoUrl})`,
                   backgroundSize: 'contain',
@@ -721,7 +804,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     fontSize: '12px',
                     fontWeight: 900,
                     color: '#111111',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                     whiteSpace: 'nowrap',
                     paddingRight: '6px'
                   }}
@@ -738,19 +821,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 >
                   <span 
                     style={{
-                      fontSize: '12.5px',
+                      fontSize: '13px',
                       fontWeight: 900,
-                      color: '#0E2A6A',
-                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
+                      color: '#0A2560',
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
+                      letterSpacing: '0.3px'
                     }}
                   >
                     {nameTelugu}
                   </span>
-                  {rawName && rawName.toLowerCase() !== nameTelugu.toLowerCase() && (
-                    <span style={{ fontSize: '10.5px', color: '#555555', marginLeft: '6px', fontWeight: 600 }}>
-                      ({rawName})
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -761,7 +840,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     fontSize: '12px',
                     fontWeight: 900,
                     color: '#111111',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                     whiteSpace: 'nowrap',
                     paddingRight: '6px'
                   }}
@@ -779,8 +858,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   <span 
                     style={{
                       fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#0E2A6A',
+                      fontWeight: 800,
+                      color: '#0A2560',
                       fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
                     }}
                   >
@@ -799,7 +878,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     paddingLeft: '6px'
                   }}
                 >
-                  <span style={{ fontSize: '10px', color: '#666666', fontStyle: 'italic' }}>
+                  <span style={{ fontSize: '10.5px', color: '#555555', fontStyle: 'italic' }}>
                     {contribution.notes && contribution.notes !== rawTown ? contribution.notes : ''}
                   </span>
                 </div>
@@ -812,7 +891,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                     fontSize: '12px',
                     fontWeight: 900,
                     color: '#111111',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                     whiteSpace: 'nowrap',
                     paddingRight: '6px'
                   }}
@@ -830,8 +909,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   <span 
                     style={{
                       fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#0E2A6A',
+                      fontWeight: 800,
+                      color: '#0A2560',
                       fontFamily: 'monospace',
                       letterSpacing: '0.5px'
                     }}
@@ -841,14 +920,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 </div>
               </div>
 
-              {/* Form Row 5: ఇతర వివరాలు : ................................ */}
+              {/* Form Row 5: ఇతర వివరాలు : అక్షరాలా Telugu words */}
               <div style={{ display: 'flex', alignItems: 'flex-end', position: 'relative', zIndex: 1 }}>
                 <span 
                   style={{
                     fontSize: '12px',
                     fontWeight: 900,
                     color: '#111111',
-                    fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif",
+                    fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif",
                     whiteSpace: 'nowrap',
                     paddingRight: '6px'
                   }}
@@ -865,13 +944,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 >
                   <span 
                     style={{
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      color: '#333333',
-                      fontStyle: 'italic'
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#222222',
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
                     }}
                   >
-                    {amountInWords} • ({paymentMethod})
+                    {amountInTeluguWords} ({paymentTelugu})
                   </span>
                 </div>
               </div>
@@ -894,7 +973,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                       fontSize: '12px',
                       fontWeight: 900,
                       color: '#111111',
-                      fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif"
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
                     }}
                   >
                     రశీదు నెం :
@@ -911,14 +990,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                   </span>
                 </div>
 
-                {/* Center-Left: రూ. Amount */}
+                {/* Center-Left: రూ. Amount in Telugu & figures */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1, marginLeft: '12px', marginRight: '16px' }}>
                   <span 
                     style={{
                       fontSize: '12.5px',
                       fontWeight: 900,
                       color: '#111111',
-                      fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif"
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
                     }}
                   >
                     రూ.
@@ -947,9 +1026,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                 {/* Right: సంతకం. (Signature) */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '90px' }}>
                   <div style={{ height: '14px', display: 'flex', alignItems: 'center' }}>
-                    {collectedBy && collectedBy !== 'N/A' && (
-                      <span style={{ fontSize: '8.5px', color: '#0E2A6A', fontWeight: 700, fontStyle: 'italic' }}>
-                        {collectedBy}
+                    {collectedByTelugu && (
+                      <span style={{ fontSize: '9px', color: '#0A2560', fontWeight: 800, fontFamily: "'Noto Serif Telugu', serif" }}>
+                        {collectedByTelugu}
                       </span>
                     )}
                   </div>
@@ -958,7 +1037,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, con
                       fontSize: '12px',
                       fontWeight: 900,
                       color: '#111111',
-                      fontFamily: "'Ramabhadra', 'Noto Serif Telugu', serif"
+                      fontFamily: "'Noto Serif Telugu', 'Ramabhadra', serif"
                     }}
                   >
                     {signatureTitle}
