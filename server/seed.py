@@ -40,16 +40,16 @@ def seed_db():
 
         # 1. Seed Users (Admin & 13 Committee Members)
         admin = User(
-            username="admin",
+            username="TEAM GARUDA",
             email="admin@teamgaruda.in",
-            password_hash=hash_password("admin123"),
+            password_hash=hash_password("1993"),
             role="ADMIN"
         )
         db.add(admin)
         db.commit()
         db.refresh(admin)
 
-        comm_pass_hash = hash_password("garuda123")
+        comm_pass_hash = hash_password("1993")
         users_to_add = []
         for m in members_data:
             username = m["name"].lower().replace(" ", "")

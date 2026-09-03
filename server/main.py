@@ -326,7 +326,11 @@ class AuditLogResponse(BaseModel):
 
 @app.post("/api/auth/login", response_model=Token)
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == login_data.username).first()
+    clean_username = login_data.username.strip()
+    user = db.query(User).filter(func.lower(User.username) == clean_username.lower()).first()
+    if not user:
+        clean_no_space = clean_username.replace(" ", "").lower()
+        user = db.query(User).filter(func.replace(func.lower(User.username), " ", "") == clean_no_space).first()
     if not user or not verify_password(login_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
