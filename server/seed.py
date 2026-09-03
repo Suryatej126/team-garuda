@@ -38,16 +38,23 @@ def seed_db():
             {"member_id": "TG013", "name": "Sandeep", "phone": "9000100017"},
         ]
 
-        # 1. Seed Users (Admin & 13 Committee Members)
+        # 1. Seed Users (1 Admin, 1 Master Committee Account & 13 Committee Member Accounts)
         admin = User(
-            username="TEAM GARUDA",
-            email="admin@teamgaruda.in",
-            password_hash=hash_password("1993"),
+            username="9398255539",
+            email="9398255539@teamgaruda.in",
+            password_hash=hash_password("password"),
             role="ADMIN"
         )
         db.add(admin)
+
+        comm_master = User(
+            username="TEAM GARUDA",
+            email="teamgaruda@teamgaruda.in",
+            password_hash=hash_password("1993"),
+            role="COMMITTEE"
+        )
+        db.add(comm_master)
         db.commit()
-        db.refresh(admin)
 
         comm_pass_hash = hash_password("1993")
         users_to_add = []
@@ -67,7 +74,7 @@ def seed_db():
         for u in users_to_add:
             db.refresh(u)
 
-        print("Seeded 1 Admin and 13 Committee users.")
+        print("Seeded Admin (9398255539), Master Committee (TEAM GARUDA), and 13 individual Committee users.")
 
         # 2. Seed Members (Committee & Core Members, all PINs are "123456")
         member_pin_hash = hash_password("123456")
