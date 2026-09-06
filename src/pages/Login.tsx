@@ -159,6 +159,19 @@ export const Login: React.FC = () => {
                 <span className="tracking-widest uppercase">Sign In</span>
               )}
             </button>
+
+            <div className="mt-3 text-center">
+              <span className="text-[10px] font-semibold text-white/60">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  className="text-antique-gold hover:text-[#f5d078] transition-colors uppercase tracking-wider font-bold cursor-pointer ml-1"
+                >
+                  Register
+                </button>
+              </span>
+            </div>
           </form>
 
         </div>
