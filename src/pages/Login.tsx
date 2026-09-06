@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User as UserIcon, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 export const Login: React.FC = () => {
@@ -10,6 +10,7 @@ export const Login: React.FC = () => {
 
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,13 +32,18 @@ export const Login: React.FC = () => {
       if (res.ok) {
         const data = await res.json(); // { access_token, token_type, role, username }
         const userData = {
-          id: 1,
+          id: data.id || 1,
           username: data.username,
           email: `${data.username}@teamgaruda.in`,
-          role: data.role,
+          role: data.role as 'USER' | 'COMMITTEE' | 'ADMIN',
         };
         login(userData, data.access_token);
-        navigate('/dashboard', { replace: true });
+        // Committee/Admin go to dashboard; regular users go to home
+        if (data.role === 'COMMITTEE' || data.role === 'ADMIN') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       } else {
         const errData = await res.json();
         setErrorMsg(errData.detail || 'Authentication failed.');
@@ -132,12 +138,20 @@ export const Login: React.FC = () => {
                   <Lock className="w-4 h-4 text-antique-gold/80" />
                 </span>
                 <input 
-                  type="password" 
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter Password" 
                   value={passwordInput}
                   onChange={e => setPasswordInput(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-3.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-antique-gold/60 focus:bg-white/10 transition-all tracking-wide"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-11 py-3.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-antique-gold/60 focus:bg-white/10 transition-all tracking-wide"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-antique-gold/80 transition-colors cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

@@ -48,6 +48,7 @@ const AppContent: React.FC = () => {
   }
 
   const isCommitteeOrAdmin = role === 'COMMITTEE' || role === 'ADMIN';
+  const isLoggedIn = isCommitteeOrAdmin || role === 'USER';
 
   return (
     <Router>
@@ -57,8 +58,8 @@ const AppContent: React.FC = () => {
             {/* Public Community Landing Page */}
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/login" element={isCommitteeOrAdmin ? <Navigate to="/dashboard" replace /> : <Login />} />
-            <Route path="/register" element={isCommitteeOrAdmin ? <Navigate to="/dashboard" replace /> : <Register />} />
+            <Route path="/login" element={isLoggedIn ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="/register" element={isLoggedIn ? <Navigate to="/" replace /> : <Register />} />
 
             {/* Committee / Admin Protected Management Routes */}
             {isCommitteeOrAdmin ? (

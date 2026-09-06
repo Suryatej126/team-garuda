@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type UserRole = 'PUBLIC' | 'MEMBER' | 'COMMITTEE' | 'ADMIN';
+export type UserRole = 'PUBLIC' | 'MEMBER' | 'USER' | 'COMMITTEE' | 'ADMIN';
 
 export interface User {
   id: number;
   username: string;
   email: string;
-  role: 'COMMITTEE' | 'ADMIN';
+  role: 'USER' | 'COMMITTEE' | 'ADMIN';
 }
 
 export interface VerifiedMember {
@@ -46,8 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      setRole(savedRole || 'COMMITTEE');
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setRole((savedRole as UserRole) || parsedUser.role || 'USER');
     } else if (savedMember) {
       setVerifiedMember(JSON.parse(savedMember));
       setRole('MEMBER');
@@ -60,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (userData: User, userToken: string) => {
     setToken(userToken);
     setUser(userData);
-    setRole(userData.role);
+    setRole(userData.role as UserRole);
     setVerifiedMember(null);
     localStorage.setItem('tg_token', userToken);
     localStorage.setItem('tg_user', JSON.stringify(userData));
