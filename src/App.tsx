@@ -15,6 +15,7 @@ import { Members } from './pages/Members';
 import { Finance } from './pages/Finance';
 import { Expenses } from './pages/Expenses';
 import { AdminSettings } from './pages/AdminSettings';
+import { Donate } from './pages/Donate';
 
 const ScreenTransitionContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -72,9 +73,20 @@ const AppContent: React.FC = () => {
                 <Route path="/more" element={<AdminSettings />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
+            ) : role === 'USER' ? (
+              <>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/donate" element={<Donate />} />
+                <Route path="/finance" element={<Finance />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/members" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/more" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
             ) : (
               <>
                 <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+                <Route path="/donate" element={<Navigate to="/login" replace />} />
                 <Route path="/members" element={<Navigate to="/login" replace />} />
                 <Route path="/finance" element={<Navigate to="/login" replace />} />
                 <Route path="/expenses" element={<Navigate to="/login" replace />} />

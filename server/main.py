@@ -341,6 +341,9 @@ class FestivalInfoResponse(BaseModel):
     pooja_schedule: str
     laddu_donors: str
     idol_donors: str
+    admin_whatsapp_number: Optional[str] = None
+    donate_title: Optional[str] = None
+    donate_description: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -358,6 +361,9 @@ class FestivalInfoUpdate(BaseModel):
     pooja_schedule: Optional[str] = None
     laddu_donors: Optional[str] = None
     idol_donors: Optional[str] = None
+    admin_whatsapp_number: Optional[str] = None
+    donate_title: Optional[str] = None
+    donate_description: Optional[str] = None
 
 
 class PublicFinanceTransparencyResponse(BaseModel):
@@ -598,7 +604,10 @@ def get_or_create_festival_info(db: Session) -> FestivalInfo:
             idol_image_url="/ganesh_idol_2026.jpg",
             pooja_schedule=DEFAULT_POOJA_SCHEDULE,
             laddu_donors=DEFAULT_LADDU_DONORS,
-            idol_donors=DEFAULT_IDOL_DONORS
+            idol_donors=DEFAULT_IDOL_DONORS,
+            admin_whatsapp_number="",
+            donate_title="Donate to Team Garuda",
+            donate_description="Your contributions help us organize the festival and serve the community."
         )
         db.add(info)
         db.commit()
@@ -683,6 +692,12 @@ def update_festival_info(
         info.laddu_donors = data.laddu_donors
     if data.idol_donors is not None:
         info.idol_donors = data.idol_donors
+    if data.admin_whatsapp_number is not None:
+        info.admin_whatsapp_number = data.admin_whatsapp_number
+    if data.donate_title is not None:
+        info.donate_title = data.donate_title
+    if data.donate_description is not None:
+        info.donate_description = data.donate_description
 
     db.commit()
     db.refresh(info)

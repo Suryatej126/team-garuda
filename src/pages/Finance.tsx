@@ -51,7 +51,7 @@ interface Chandha {
 
 export const Finance: React.FC = () => {
   const { token, user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'CONTRIBUTIONS' | 'SPONSORSHIPS' | 'CHANDHALU'>('CONTRIBUTIONS');
+  const [activeTab, setActiveTab] = useState<'CONTRIBUTIONS' | 'SPONSORSHIPS' | 'CHANDHALU'>(user?.role === 'USER' ? 'CHANDHALU' : 'CONTRIBUTIONS');
   const [loading, setLoading] = useState(true);
 
   // Data lists
@@ -618,9 +618,9 @@ export const Finance: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Main Tabs: Committee | Item Sponsors | Public Donations */}
+        {/* Main Tabs: Committee (Admin/Committee only) | Item Sponsors | Public Donations */}
         <div className="flex bg-secondary-bg border border-border-custom p-0.5 rounded-xl">
-          {(['CONTRIBUTIONS', 'SPONSORSHIPS', 'CHANDHALU'] as const).map(tab => (
+          {((user?.role === 'USER' ? ['CHANDHALU', 'SPONSORSHIPS'] : ['CONTRIBUTIONS', 'SPONSORSHIPS', 'CHANDHALU']) as Array<'CONTRIBUTIONS' | 'SPONSORSHIPS' | 'CHANDHALU'>).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -637,7 +637,23 @@ export const Finance: React.FC = () => {
       </div>
 
       {/* 4. MINI DASHBOARD WIDGET */}
-      {summary && (
+      {summary && user?.role !== 'USER' && (
+        <div className="px-5 shrink-0 mb-2">
+          <div className="bg-white border border-border-custom rounded-2xl p-3 flex items-center justify-between shadow-sm">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Total Funds (Ledger)</span>
+              <span className="text-sm font-black text-primary-text mt-0.5">₹{summary.total_funds.toLocaleString()}</span>
+            </div>
+            <div className="h-6 w-[1px] bg-border-custom"></div>
+            <div className="flex flex-col text-right">
+              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Net Balance</span>
+              <span className="text-sm font-black text-success mt-0.5">₹{summary.current_balance.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {summary && user?.role !== 'USER' && (
         <div className="px-5 py-3 shrink-0 flex flex-col gap-3">
           <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest block -mb-1">
             {activeTab === 'CONTRIBUTIONS' ? 'Committee Overview' : 'Ledger Overview'} ({selectedYear === 0 ? 'All Time' : selectedYear})

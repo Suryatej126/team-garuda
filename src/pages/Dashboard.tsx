@@ -324,9 +324,10 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Statistics section - Grid of 4 premium cards */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Financial Summary</span>
+        {user?.role !== 'USER' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Financial Summary</span>
             {/* Year Selector Pills */}
             <div className="flex items-center gap-1 bg-secondary-bg p-0.5 rounded-lg border border-border-custom">
               {[2026, 2025, 0].map((yr) => (
@@ -367,11 +368,12 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Current Balance Card */}
-        <div className="bg-white border border-border-custom p-5 rounded-3xl relative overflow-hidden shadow-sm">
-          <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-secondary-bg flex items-center justify-center text-primary-maroon border border-border-custom">
+        {user?.role !== 'USER' && (
+          <div className="bg-white border border-border-custom p-5 rounded-3xl relative overflow-hidden shadow-sm">
+            <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-secondary-bg flex items-center justify-center text-primary-maroon border border-border-custom">
             <TrendingUp className="w-5 h-5" />
           </div>
           <span className="text-[9px] text-secondary-text font-bold uppercase tracking-widest">Current Balance</span>
@@ -387,20 +389,22 @@ export const Dashboard: React.FC = () => {
               <span className="font-extrabold text-success mt-0.5">₹{summary.current_balance.toLocaleString()}</span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Donut Chart (Contributions vs Sponsorships) */}
-        <div className="flex flex-col gap-3">
-          <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Fund Sources breakdown</span>
-          <DonutChart 
-            contributions={summary.total_contributions} 
-            sponsorships={summary.total_sponsorships} 
-            chandhalu={summary.total_chandhalu} 
-          />
-        </div>
+        {user?.role !== 'USER' && (
+          <div className="flex flex-col gap-3">
+            <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Fund Sources breakdown</span>
+            <DonutChart 
+              contributions={summary.total_contributions} 
+              sponsorships={summary.total_sponsorships} 
+              chandhalu={summary.total_chandhalu} 
+            />
+          </div>
+        )}
 
         {/* Expense Category Bar Chart */}
-        {Object.keys(summary.expense_by_category).length > 0 && (
+        {user?.role !== 'USER' && Object.keys(summary.expense_by_category).length > 0 && (
           <div className="flex flex-col gap-3">
             <span className="text-[9px] font-bold text-secondary-text uppercase tracking-widest">Expense Allocation</span>
             <ExpenseByCategoryChart data={summary.expense_by_category} />

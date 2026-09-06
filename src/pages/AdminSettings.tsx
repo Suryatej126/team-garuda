@@ -99,6 +99,9 @@ export const AdminSettings: React.FC = () => {
   const [poojas, setPoojas] = useState<PoojaDay[]>([]);
   const [ladduDonors, setLadduDonors] = useState<DonorItem[]>([]);
   const [idolDonors, setIdolDonors] = useState<DonorItem[]>([]);
+  const [adminWhatsappNumber, setAdminWhatsappNumber] = useState('');
+  const [donateTitle, setDonateTitle] = useState('Donate to Team Garuda');
+  const [donateDescription, setDonateDescription] = useState('Your contributions help us organize the festival and serve the community.');
   
   const [loadingFest, setLoadingFest] = useState(false);
   const [savingFest, setSavingFest] = useState(false);
@@ -188,6 +191,9 @@ export const AdminSettings: React.FC = () => {
         try { setPoojas(JSON.parse(data.pooja_schedule)); } catch { /* ignore */ }
         try { setLadduDonors(JSON.parse(data.laddu_donors)); } catch { /* ignore */ }
         try { setIdolDonors(JSON.parse(data.idol_donors)); } catch { /* ignore */ }
+        setAdminWhatsappNumber(data.admin_whatsapp_number || '');
+        setDonateTitle(data.donate_title || 'Donate to Team Garuda');
+        setDonateDescription(data.donate_description || 'Your contributions help us organize the festival and serve the community.');
       }
     } catch (err) {
       console.error('Error fetching festival info:', err);
@@ -220,7 +226,10 @@ export const AdminSettings: React.FC = () => {
         idol_image_url: idolImageUrl.trim(),
         pooja_schedule: JSON.stringify(poojas),
         laddu_donors: JSON.stringify(ladduDonors),
-        idol_donors: JSON.stringify(idolDonors)
+        idol_donors: JSON.stringify(idolDonors),
+        admin_whatsapp_number: adminWhatsappNumber.trim(),
+        donate_title: donateTitle.trim(),
+        donate_description: donateDescription.trim()
       };
 
       const res = await fetch(`${API_BASE_URL}/api/admin/festival-info`, {
@@ -525,7 +534,13 @@ export const AdminSettings: React.FC = () => {
                 <div className="flex items-center gap-3">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#2D1609] border border-[#E9D0A7] shrink-0 shadow-inner">
                   <img 
-                    src={idolImageUrl || '/ganesh_idol_2026.jpg'} 
+                    src={
+                      idolImageUrl?.startsWith('http') 
+                        ? idolImageUrl 
+                        : idolImageUrl?.startsWith('/')
+                          ? `${API_BASE_URL}${idolImageUrl}`
+                          : idolImageUrl || '/ganesh_idol_2026.jpg'
+                    } 
                     alt="Current Idol" 
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.target as HTMLImageElement).src = '/ganesh_idol_2026.jpg'; }}
@@ -790,6 +805,47 @@ export const AdminSettings: React.FC = () => {
 
                 </div>
               )}
+            </div>
+
+            {/* Public Donation Settings */}
+            <div className="border border-border-custom rounded-2xl overflow-hidden">
+              <div 
+                className="p-3 bg-[#FAF3E2] flex items-center justify-between"
+              >
+                <span className="text-xs font-black text-[#7C2D12]">
+                  💰 పబ్లిక్ డొనేషన్ సెట్టింగ్స్ (Public Donations)
+                </span>
+              </div>
+              <div className="p-3 flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase">WhatsApp Number (e.g., 919876543210)</label>
+                  <input 
+                    type="text"
+                    value={adminWhatsappNumber}
+                    onChange={e => setAdminWhatsappNumber(e.target.value)}
+                    placeholder="Enter phone number with country code"
+                    className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase">Donate Page Title</label>
+                  <input 
+                    type="text"
+                    value={donateTitle}
+                    onChange={e => setDonateTitle(e.target.value)}
+                    className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-secondary-text uppercase">Donate Page Description</label>
+                  <textarea 
+                    value={donateDescription}
+                    onChange={e => setDonateDescription(e.target.value)}
+                    rows={2}
+                    className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Save Button */}

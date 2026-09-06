@@ -408,7 +408,13 @@ export const Home: React.FC = () => {
             {/* Image Container with Gold Border Frame */}
             <div className="relative w-full rounded-2xl overflow-hidden border border-[#D97706]/30 shadow-inner bg-[#2D1609] aspect-4/3 flex items-center justify-center">
               <img 
-                src={festivalInfo.idol_image_url || "/ganesh_idol_2026.jpg"} 
+                src={
+                  festivalInfo.idol_image_url?.startsWith('http') 
+                    ? festivalInfo.idol_image_url 
+                    : festivalInfo.idol_image_url?.startsWith('/')
+                      ? `${API_BASE_URL}${festivalInfo.idol_image_url}`
+                      : festivalInfo.idol_image_url || "/ganesh_idol_2026.jpg"
+                } 
                 alt="Lord Ganesh Idol 2026"
                 className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500"
                 onError={(e) => {

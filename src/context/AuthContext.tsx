@@ -91,6 +91,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tg_role');
   };
 
+  // 30-Minute Inactivity Session Timeout
+  useEffect(() => {
+    if (role === 'PUBLIC') return; // Don't timeout if they are already logged out
+
+    let timeoutId: number;
+    const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+
+    const resetTimeout = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        logout();
+        alert('Your session has expired due to inactivity.');
+      }, INACTIVITY_LIMIT_MS);
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, resetTimeout, { passive: true });
+    });
+
+    resetTimeout();
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      events.forEach(event => {
+        document.removeEventListener(event, resetTimeout);
+      });
+    };
+  }, [role]); // Re-run when role changes so we can attach/detach based on login state
+
   return (
     <AuthContext.Provider value={{ role, user, verifiedMember, token, login, verifyMember, logout, loading }}>
       {children}

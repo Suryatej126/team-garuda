@@ -15,19 +15,30 @@ export const BottomNavigation: React.FC = () => {
   const location = useLocation();
 
   const isCommitteeOrAdmin = role === 'COMMITTEE' || role === 'ADMIN';
+  const isLoggedIn = isCommitteeOrAdmin || role === 'USER';
 
-  if (!isCommitteeOrAdmin) {
+  if (!isLoggedIn) {
     return null;
   }
 
   // Committee / Admin tabs
-  const tabs = [
+  const committeeTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { id: 'members', label: 'Chandhalu', icon: Users, path: '/members' },
     { id: 'finance', label: 'Finance', icon: Landmark, path: '/finance' },
     { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
     { id: 'more', label: 'More', icon: Menu, path: '/more' },
   ];
+
+  // User tabs
+  const userTabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { id: 'donate', label: 'Donate', icon: Landmark, path: '/donate' }, // We can reuse Landmark or similar, let's use the ones imported
+    { id: 'finance', label: 'Finance', icon: Users, path: '/finance' },
+    { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
+  ];
+
+  const tabs = isCommitteeOrAdmin ? committeeTabs : userTabs;
 
   const isActive = (path: string) => {
     return location.pathname === path;

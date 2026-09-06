@@ -191,6 +191,9 @@ class FestivalInfo(Base):
     pooja_schedule = Column(Text, nullable=False)
     laddu_donors = Column(Text, nullable=False)
     idol_donors = Column(Text, nullable=False)
+    admin_whatsapp_number = Column(String(20), nullable=True, default="")
+    donate_title = Column(String(150), nullable=True, default="Donate to Team Garuda")
+    donate_description = Column(Text, nullable=True, default="Your contributions help us organize the festival and serve the community.")
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
