@@ -16,7 +16,7 @@
   --color-border-custom: #E5DDD2;
   
   --font-serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
-  --font-sans: 'Inter', 'Manrope', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Telugu', 'Inter', 'Manrope', system-ui, -apple-system, sans-serif;
 }
 
 @layer base {

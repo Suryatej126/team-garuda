@@ -55,6 +55,11 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+
 class MemberVerifyRequest(BaseModel):
     member_id: str
     pin: str
@@ -378,13 +383,36 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-    access_token = create_access_token(data={"sub": user.username})
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "role": user.role,
-        "username": user.username,
-    }
+    
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role}
+    )
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role, "username": user.username}
+
+@app.post("/api/auth/register")
+def register(register_data: RegisterRequest, db: Session = Depends(get_db)):
+    # Check if user already exists
+    clean_username = register_data.username.strip()
+    existing_user = db.query(User).filter(func.lower(User.username) == clean_username.lower()).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    email = register_data.email if register_data.email else f"{clean_username}@example.com"
+    
+    new_user = User(
+        username=clean_username,
+        email=email,
+        password_hash=get_password_hash(register_data.password),
+        role="USER"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    access_token = create_access_token(
+        data={"sub": new_user.username, "role": new_user.role}
+    )
+    return {"access_token": access_token, "token_type": "bearer", "role": new_user.role, "username": new_user.username}
 
 @app.post("/api/auth/verify-member", response_model=MemberResponse)
 def verify_member_pin(verify_data: MemberVerifyRequest, db: Session = Depends(get_db)):
@@ -668,9 +696,7 @@ async def upload_idol_image(
     current_user: User = Depends(require_committee)
 ):
     try:
-        contents = await file.read()
-        file_name = f"idol_{int(datetime.datetime.now().timestamp())}_{file.filename}"
-        file_url = storage_client.upload_file(file_name, contents, file.content_type)
+        file_url = storage_client.save_file(file, subfolder="idol")
         return {"file_url": file_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")

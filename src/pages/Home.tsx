@@ -290,8 +290,8 @@ export const Home: React.FC = () => {
                 {festivalInfo.festival_year}
               </span>
             </h1>
-            <span className="text-[8px] font-bold tracking-widest uppercase text-[#A16207]">
-              Sri Ganesha Krupa
+            <span className="text-[10px] font-bold tracking-widest uppercase text-[#A16207]">
+              వర సిద్ధి వినాయకుడు
             </span>
           </div>
         </div>
@@ -309,10 +309,10 @@ export const Home: React.FC = () => {
           ) : (
             <button 
               onClick={() => navigate('/login')}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-[#9A3412] bg-[#EA580C]/10 hover:bg-[#EA580C]/15 px-3.5 py-1.5 rounded-full border border-[#EA580C]/30 shadow-2xs active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 text-[11px] font-bold text-[#9A3412] bg-[#EA580C]/10 hover:bg-[#EA580C]/15 px-4 py-1.5 rounded-full border border-[#EA580C]/30 shadow-2xs active:scale-95 transition-all cursor-pointer"
             >
               <Lock className="w-3 h-3 text-[#EA580C]" />
-              <span>కమిటీ లాగిన్</span>
+              <span>Login / Register</span>
             </button>
           )}
         </div>

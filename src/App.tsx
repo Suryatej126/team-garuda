@@ -9,6 +9,7 @@ import { GaneshaLoader } from './components/GaneshaLoader';
 // Pages imports
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
 import { Finance } from './pages/Finance';
@@ -57,6 +58,7 @@ const AppContent: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={isCommitteeOrAdmin ? <Navigate to="/dashboard" replace /> : <Login />} />
+            <Route path="/register" element={isCommitteeOrAdmin ? <Navigate to="/dashboard" replace /> : <Register />} />
 
             {/* Committee / Admin Protected Management Routes */}
             {isCommitteeOrAdmin ? (
