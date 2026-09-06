@@ -402,7 +402,7 @@ def register(register_data: RegisterRequest, db: Session = Depends(get_db)):
     new_user = User(
         username=clean_username,
         email=email,
-        password_hash=get_password_hash(register_data.password),
+        password_hash=hash_password(register_data.password),
         role="USER"
     )
     db.add(new_user)
