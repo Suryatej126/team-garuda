@@ -10,7 +10,9 @@ import {
   CheckCircle2, 
   ArrowUp, 
   ChevronDown, 
-  LayoutDashboard
+  LayoutDashboard,
+  LogOut,
+  UserCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
@@ -200,7 +202,7 @@ const DEFAULT_FESTIVAL_INFO: FestivalInfoData = {
 };
 
 export const Home: React.FC = () => {
-  const { role } = useAuth();
+  const { role, user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [festivalInfo, setFestivalInfo] = useState<FestivalInfoData>(DEFAULT_FESTIVAL_INFO);
@@ -268,6 +270,7 @@ export const Home: React.FC = () => {
   };
 
   const isCommitteeOrAdmin = role === 'COMMITTEE' || role === 'ADMIN';
+  const isRegularUser = role === 'USER';
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-[#FFFDF8] text-[#2D241E] overflow-y-auto no-scrollbar scroll-smooth">
@@ -306,6 +309,20 @@ export const Home: React.FC = () => {
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>డ్యాష్‌బోర్డ్</span>
             </button>
+          ) : isRegularUser ? (
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#9A3412] bg-[#EA580C]/8 px-3 py-1.5 rounded-full border border-[#EA580C]/20">
+                <UserCircle2 className="w-3.5 h-3.5 text-[#EA580C]" />
+                <span className="max-w-[80px] truncate">{user?.username}</span>
+              </div>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#756D65] bg-[#F3EEE6] hover:bg-[#E5DDD2] px-2.5 py-1.5 rounded-full border border-[#E5DDD2] active:scale-95 transition-all cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="w-3 h-3" />
+              </button>
+            </div>
           ) : (
             <button 
               onClick={() => navigate('/login')}
