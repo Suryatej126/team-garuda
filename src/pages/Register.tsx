@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
 import { Phone, Lock, ChevronLeft, ShieldCheck, Mail } from 'lucide-react';
-import { GaneshaLoader } from '../components/GaneshaLoader';
+
 
 export const Register: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -40,7 +40,13 @@ export const Register: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        await login(username, password);
+        const userData = {
+          id: Date.now(), // Mock ID or from response if available
+          username: data.username,
+          email: email || `${data.username}@teamgaruda.in`,
+          role: data.role,
+        };
+        login(userData, data.access_token);
         navigate('/');
       } else {
         const errorData = await response.json();
