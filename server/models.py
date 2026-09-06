@@ -176,4 +176,24 @@ class AuditLog(Base):
     timestamp = Column(TIMESTAMP, server_default=func.now())
 
 
+class FestivalInfo(Base):
+    __tablename__ = 'festival_info'
+
+    id = Column(Integer, primary_key=True, index=True)
+    festival_title = Column(String(150), nullable=False, default="శ్రీ గణేష్ ఉత్సవం 2026")
+    festival_year = Column(Integer, nullable=False, default=2026)
+    tagline = Column(String(100), nullable=False, default="టీమ్ గరుడ")
+    sub_tagline = Column(String(150), nullable=False, default="మన వీధి • మన పండుగ • మన గర్వం")
+    dates_text = Column(String(150), nullable=False, default="సెప్టెంబర్ 15 – సెప్టెంబర్ 23, 2026")
+    location_text = Column(String(150), nullable=False, default="నాగార్జున స్ట్రీట్, రాజోలు")
+    status_text = Column(String(100), nullable=False, default="వైభవంగా కొనసాగుతోంది")
+    idol_image_url = Column(String(500), nullable=False, default="/ganesh_idol_2026.jpg")
+    pooja_schedule = Column(Text, nullable=False)
+    laddu_donors = Column(Text, nullable=False)
+    idol_donors = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+
 

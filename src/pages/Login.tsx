@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, ArrowLeft } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 export const Login: React.FC = () => {
@@ -31,13 +31,13 @@ export const Login: React.FC = () => {
       if (res.ok) {
         const data = await res.json(); // { access_token, token_type, role, username }
         const userData = {
-          id: 1, // Placeholder backend user ID, retrieved from sub token payload or default
+          id: 1,
           username: data.username,
           email: `${data.username}@teamgaruda.in`,
           role: data.role,
         };
         login(userData, data.access_token);
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       } else {
         const errData = await res.json();
         setErrorMsg(errData.detail || 'Authentication failed.');
@@ -69,8 +69,17 @@ export const Login: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(0,0,0,0)_0%,rgba(255,215,0,0.03)_45%,rgba(255,215,0,0.08)_50%,rgba(255,215,0,0.03)_55%,rgba(0,0,0,0)_100%)] bg-[length:200%_100%] animate-shimmer pointer-events-none z-10" />
 
       {/* Login Card wrapper */}
-      <div className="w-full max-w-sm z-20 flex flex-col gap-6 animate-fade-in px-4">
+      <div className="w-full max-w-sm z-20 flex flex-col gap-4 animate-fade-in px-4">
         
+        {/* Back to Public Home Button */}
+        <button
+          onClick={() => navigate('/')}
+          className="self-start flex items-center gap-1.5 text-white/80 hover:text-white bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-full border border-white/15 text-[10px] font-bold backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>హోమ్‌కి వెళ్లండి (Back to Home)</span>
+        </button>
+
         {/* Glass Card Container */}
         <div className="backdrop-blur-xl bg-black/60 border border-white/10 p-7 rounded-[32px] shadow-2xl flex flex-col gap-5 relative overflow-hidden">
           

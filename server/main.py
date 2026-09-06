@@ -4,13 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import os
+import json
 import datetime
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 
 from .database import get_db, engine
 from .config import ALLOWED_ORIGINS, UPLOAD_DIR
-from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor, ReceiptSetting, AuditLog
+from .models import Base, User, Member, Event, Contribution, Sponsorship, Expense, Media, Chandha, Contributor, ReceiptSetting, AuditLog, FestivalInfo
 from .auth import hash_password, verify_password, create_access_token, get_current_user, require_admin, require_committee
 from .storage import storage_client
 
@@ -321,6 +322,47 @@ class AuditLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class FestivalInfoResponse(BaseModel):
+    id: int
+    festival_title: str
+    festival_year: int
+    tagline: str
+    sub_tagline: str
+    dates_text: str
+    location_text: str
+    status_text: str
+    idol_image_url: str
+    pooja_schedule: str
+    laddu_donors: str
+    idol_donors: str
+
+    class Config:
+        from_attributes = True
+
+
+class FestivalInfoUpdate(BaseModel):
+    festival_title: Optional[str] = None
+    festival_year: Optional[int] = None
+    tagline: Optional[str] = None
+    sub_tagline: Optional[str] = None
+    dates_text: Optional[str] = None
+    location_text: Optional[str] = None
+    status_text: Optional[str] = None
+    idol_image_url: Optional[str] = None
+    pooja_schedule: Optional[str] = None
+    laddu_donors: Optional[str] = None
+    idol_donors: Optional[str] = None
+
+
+class PublicFinanceTransparencyResponse(BaseModel):
+    total_donations: float
+    total_expenses: float
+    available_balance: float
+    recent_donations: List[dict]
+    recent_expenses: List[dict]
+
+
 # --- Routes ---
 
 
@@ -376,7 +418,263 @@ def get_member_contributions(member_id: str, db: Session = Depends(get_db)):
     # Return all contributions for this member
     return db.query(Contribution).filter(Contribution.member_id == member.id).order_by(Contribution.date.desc()).all()
 
+# Audit Log Helper
+def log_action(db: Session, user: Optional[User], action: str, details: str):
+    try:
+        log = AuditLog(
+            user_id=user.id if user else None,
+            username=user.username if user else "SYSTEM",
+            action=action,
+            details=details
+        )
+        db.add(log)
+        db.commit()
+    except Exception as e:
+        print(f"Warning: Failed to log audit: {e}")
+
+# Default Festival Data
+DEFAULT_POOJA_SCHEDULE = json.dumps([
+    {
+        "day": 1,
+        "date": "2026-09-15",
+        "title": "వినాయక చవితి - గణపతి ప్రాణ ప్రతిష్ఠ",
+        "description": "గణపతి హోమం, విగ్రహ ప్రాణ ప్రతిష్ఠ, ప్రథమ మహా పూజ & మోదక నైవేద్యం",
+        "special_event": "విశేష పుష్పాలంకరణ & మహా హారతి",
+        "time": "ఉదయం 8:30 & సాయంత్రం 7:00"
+    },
+    {
+        "day": 2,
+        "date": "2026-09-16",
+        "title": "శ్రీ గణపతి సహస్రనామ కుంకుమార్చన",
+        "description": "పంచామృతాభిషేకం, విశేష అర్చన & మహిళా భక్త బృందంచే కుంకుమార్చన",
+        "special_event": "లడ్డూ & పాయసం ప్రసాద వితరణ",
+        "time": "సాయంత్రం 6:30"
+    },
+    {
+        "day": 3,
+        "date": "2026-09-17",
+        "title": "సంకష్టహర చతుర్థి విశేష పూజ",
+        "description": "గణపతి అథర్వశీర్ష పారాయణం & నవగ్రహ శాంతి అభిషేకం",
+        "special_event": "విశేష చతుర్థి నైవేద్య సమర్పణ",
+        "time": "సాయంత్రం 7:00"
+    },
+    {
+        "day": 4,
+        "date": "2026-09-18",
+        "title": "గణపతి హోమం & భజన సంధ్య",
+        "description": "లోక కళ్యాణార్థం గణపతి హోమం & వీధి భక్త మండలిచే భక్తి సంకీర్తనలు",
+        "special_event": "భక్తి సంగీత కార్యక్రమం",
+        "time": "సాయంత్రం 6:00"
+    },
+    {
+        "day": 5,
+        "date": "2026-09-19",
+        "title": "విశేష బిల్వార్చన & పుష్పాభిషేకం",
+        "description": "21 రకాల పత్రాలతో ఏకవింశతి పూజ & సహస్ర నామార్చన",
+        "special_event": "పులిహోర & దద్దోజనం ప్రసాదం",
+        "time": "ఉదయం 9:00 & సాయంత్రం 7:00"
+    },
+    {
+        "day": 6,
+        "date": "2026-09-20",
+        "title": "శ్రీ లలితా సహస్రనామ పారాయణం",
+        "description": "మహిళలచే శ్రీ లలితా పారాయణం & సౌభాగ్య ద్రవ్యాల ప్రదానం",
+        "special_event": "మహిళా కుంకుమార్చన",
+        "time": "సాయంత్రం 6:30"
+    },
+    {
+        "day": 7,
+        "date": "2026-09-21",
+        "title": "దివ్య మహా హారతి & ప్రత్యేక అలంకరణ",
+        "description": "గణేశునికి విశేష పుష్ప రథ అలంకరణ & 108 దీపారాధన హారతి",
+        "special_event": "108 దీపారాధన మహోత్సవం",
+        "time": "సాయంత్రం 7:30"
+    },
+    {
+        "day": 8,
+        "date": "2026-09-22",
+        "title": "మహా అన్నదాన మహోత్సవం",
+        "description": "వీధి ప్రజలు మరియు భక్తులందరికీ స్వామివారి మహా అన్నప్రసాద వితరణ",
+        "special_event": "మహా అన్నదానం (మధ్యాహ్నం 12:00 నుండి)",
+        "time": "మధ్యాహ్నం 12:00 నుండి"
+    },
+    {
+        "day": 9,
+        "date": "2026-09-23",
+        "title": "గంగా నిమజ్జనోత్సవం & శోభాయాత్ర",
+        "description": "స్వామివారి మహా మంగళ హారతి, లడ్డూ ప్రసాద వేలం పాట & ఘన వీడ్కోలు శోభాయాత్ర",
+        "special_event": "లడ్డూ వేలం పాట & గంగా నిమజ్జనం",
+        "time": "మధ్యాహ్నం 3:00 నుండి"
+    }
+], ensure_ascii=False)
+
+DEFAULT_LADDU_DONORS = json.dumps([
+    {
+        "id": 1,
+        "name": "శ్రీ రాము గారు",
+        "title": "లడ్డు ప్రధాన దాత",
+        "amount": "మహా లడ్డూ ప్రసాదం సమర్పణ",
+        "year": "2026"
+    },
+    {
+        "id": 2,
+        "name": "శ్రీ వనమాల శ్రీను & చదలాడ శ్రీను గారు",
+        "title": "లడ్డు ప్రసాద దాతలు",
+        "amount": "పూరి & నైవేద్య అన్నదానం",
+        "year": "2026"
+    },
+    {
+        "id": 3,
+        "name": "శ్రీ గుబ్బల లక్ష్మి & దుర్గా ప్రసాద్ గారు",
+        "title": "విశేష నైవేద్య దాతలు",
+        "amount": "క్షీరాన్నం & ప్రసాద వితరణ",
+        "year": "2026"
+    }
+], ensure_ascii=False)
+
+DEFAULT_IDOL_DONORS = json.dumps([
+    {
+        "id": 1,
+        "name": "టీమ్ గరుడ కమిటీ సభ్యులు & యువజన సంఘం",
+        "title": "వినాయక మహా విగ్రహ సమర్పణ",
+        "details": "2026 గరుడ గణేష్ ఉత్సవ ప్రధాన విగ్రహం",
+        "year": "2026"
+    },
+    {
+        "id": 2,
+        "name": "శ్రీ కంభంపాటి సూర్య తేజ & కుటుంబ సభ్యులు",
+        "title": "విగ్రహ అలంకరణ & మంటప దాతలు",
+        "details": "మంటప డెకరేషన్ & లైటింగ్ సహకారం",
+        "year": "2026"
+    },
+    {
+        "id": 3,
+        "name": "నాగార్జున స్ట్రీట్ వీధి పెద్దలు & భక్త బృందం",
+        "title": "ఉత్సవ ప్రోత్సాహక దాతలు",
+        "details": "రాజోలు నాగార్జున వీధి సమస్త భక్తులు",
+        "year": "2026"
+    }
+], ensure_ascii=False)
+
+def get_or_create_festival_info(db: Session) -> FestivalInfo:
+    info = db.query(FestivalInfo).first()
+    if not info:
+        info = FestivalInfo(
+            festival_title="శ్రీ గణేష్ ఉత్సవం 2026",
+            festival_year=2026,
+            tagline="టీమ్ గరుడ",
+            sub_tagline="మన వీధి • మన పండుగ • మన గర్వం",
+            dates_text="సెప్టెంబర్ 15 – సెప్టెంబర్ 23, 2026",
+            location_text="నాగార్జున స్ట్రీట్, రాజోలు",
+            status_text="వైభవంగా కొనసాగుతోంది",
+            idol_image_url="/ganesh_idol_2026.jpg",
+            pooja_schedule=DEFAULT_POOJA_SCHEDULE,
+            laddu_donors=DEFAULT_LADDU_DONORS,
+            idol_donors=DEFAULT_IDOL_DONORS
+        )
+        db.add(info)
+        db.commit()
+        db.refresh(info)
+    return info
+
 # --- Public Endpoints ---
+@app.get("/api/public/festival-info", response_model=FestivalInfoResponse)
+def get_festival_info_endpoint(db: Session = Depends(get_db)):
+    return get_or_create_festival_info(db)
+
+@app.get("/api/public/finance-transparency", response_model=PublicFinanceTransparencyResponse)
+def get_public_finance_transparency(db: Session = Depends(get_db)):
+    target_year = 2026
+    # Calculate donations from contributions & sponsorships & chandhalu
+    contrib_sum = db.query(func.sum(Contribution.amount)).filter(Contribution.status == "PAID", func.extract('year', Contribution.date) == target_year).scalar() or 0.0
+    spons_sum = db.query(func.sum(Sponsorship.amount)).filter(Sponsorship.status == "PAID", func.extract('year', Sponsorship.date) == target_year).scalar() or 0.0
+    chandha_sum = db.query(func.sum(Chandha.amount)).filter(func.extract('year', Chandha.date) == target_year).scalar() or 0.0
+    total_donations = float(contrib_sum) + float(spons_sum) + float(chandha_sum)
+    
+    expense_sum = db.query(func.sum(Expense.amount)).filter(func.extract('year', Expense.date) == target_year).scalar() or 0.0
+    total_expenses = float(expense_sum)
+    available_balance = total_donations - total_expenses
+
+    # Recent transparent donations
+    recent_contribs = db.query(Contribution).filter(Contribution.status == "PAID").order_by(Contribution.date.desc(), Contribution.id.desc()).limit(15).all()
+    recent_donations = []
+    for c in recent_contribs:
+        name = c.contributor.name if c.contributor else (c.member.name if c.member else "భక్తుడు")
+        recent_donations.append({
+            "name": name,
+            "amount": float(c.amount),
+            "date": str(c.date),
+            "purpose": c.purpose or "గణపతి చందా"
+        })
+
+    # Recent transparent expenses
+    recent_exps = db.query(Expense).order_by(Expense.date.desc(), Expense.id.desc()).limit(15).all()
+    recent_expenses = []
+    for e in recent_exps:
+        recent_expenses.append({
+            "name": e.name,
+            "amount": float(e.amount),
+            "date": str(e.date),
+            "category": e.category
+        })
+
+    return {
+        "total_donations": total_donations,
+        "total_expenses": total_expenses,
+        "available_balance": available_balance,
+        "recent_donations": recent_donations,
+        "recent_expenses": recent_expenses
+    }
+
+@app.put("/api/admin/festival-info", response_model=FestivalInfoResponse)
+def update_festival_info(
+    data: FestivalInfoUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_committee)
+):
+    info = get_or_create_festival_info(db)
+    if data.festival_title is not None:
+        info.festival_title = data.festival_title
+    if data.festival_year is not None:
+        info.festival_year = data.festival_year
+    if data.tagline is not None:
+        info.tagline = data.tagline
+    if data.sub_tagline is not None:
+        info.sub_tagline = data.sub_tagline
+    if data.dates_text is not None:
+        info.dates_text = data.dates_text
+    if data.location_text is not None:
+        info.location_text = data.location_text
+    if data.status_text is not None:
+        info.status_text = data.status_text
+    if data.idol_image_url is not None:
+        info.idol_image_url = data.idol_image_url
+    if data.pooja_schedule is not None:
+        info.pooja_schedule = data.pooja_schedule
+    if data.laddu_donors is not None:
+        info.laddu_donors = data.laddu_donors
+    if data.idol_donors is not None:
+        info.idol_donors = data.idol_donors
+
+    db.commit()
+    db.refresh(info)
+    log_action(db, current_user, "UPDATE_FESTIVAL_INFO", f"Updated landing page festival info for {info.festival_year}")
+    return info
+
+@app.post("/api/admin/upload-idol-image")
+async def upload_idol_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_committee)
+):
+    try:
+        contents = await file.read()
+        file_name = f"idol_{int(datetime.datetime.now().timestamp())}_{file.filename}"
+        file_url = storage_client.upload_file(file_name, contents, file.content_type)
+        return {"file_url": file_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
 @app.get("/api/public/events", response_model=List[EventResponse])
 def get_public_events(db: Session = Depends(get_db)):
     return db.query(Event).order_by(Event.date.desc()).all()
@@ -394,6 +692,7 @@ def get_public_media(event_id: Optional[int] = None, db: Session = Depends(get_d
     if event_id is not None:
         query = query.filter(Media.event_id == event_id)
     return query.order_by(Media.created_at.desc()).all()
+
 
 # --- Committee/Admin Protected Management Endpoints ---
 

@@ -21,6 +21,7 @@ committee_members = [
 password_hash = hash_password('garuda123')
 pin_hash = hash_password('123456')
 
+
 for cm in committee_members:
     # 1. Create or update User
     user = db.query(User).filter(User.username == cm['username']).first()

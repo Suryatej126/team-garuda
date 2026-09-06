@@ -23,6 +23,43 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Ensure database host can be resolved even if local ISP DNS refuses .tech domains
+def _ensure_resolvable_db_url(url: str) -> str:
+    import socket
+    import urllib.request
+    import json
+    from urllib.parse import urlparse
+
+    if not url or "sqlite" in url:
+        return url
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname
+        if not host or host in ("localhost", "127.0.0.1"):
+            return url
+        if "hostaddr=" in (parsed.query or ""):
+            return url
+        try:
+            socket.gethostbyname(host)
+            return url
+        except Exception:
+            # Fallback to Google DNS-over-HTTPS
+            doh_url = f"https://dns.google/resolve?name={host}&type=A"
+            req = urllib.request.Request(doh_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as res:
+                data = json.loads(res.read().decode())
+                answers = data.get("Answer", [])
+                ips = [a["data"] for a in answers if a.get("type") == 1]
+                if ips:
+                    sep = "&" if "?" in url else "?"
+                    print(f"INFO: Using DoH resolved hostaddr {ips[0]} for host {host}")
+                    return f"{url}{sep}hostaddr={ips[0]}"
+    except Exception as e:
+        print(f"Warning: DNS hostaddr fallback error: {e}")
+    return url
+
+DATABASE_URL = _ensure_resolvable_db_url(DATABASE_URL)
+
 JWT_SECRET = os.getenv("JWT_SECRET", "garuda_super_secret_jwt_key_2026_india_team")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day

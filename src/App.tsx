@@ -7,6 +7,7 @@ import { Splash } from './pages/Splash';
 import { GaneshaLoader } from './components/GaneshaLoader';
 
 // Pages imports
+import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
@@ -45,19 +46,20 @@ const AppContent: React.FC = () => {
     );
   }
 
+  const isCommitteeOrAdmin = role === 'COMMITTEE' || role === 'ADMIN';
+
   return (
     <Router>
       <PhoneWrapper>
         <ScreenTransitionContainer>
           <Routes>
-            {!role || role === 'PUBLIC' ? (
-              // Not logged in -> Directly show Login page
-              <>
-                <Route path="/" element={<Login />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </>
-            ) : (
-              // Committee / Admin Management Routes
+            {/* Public Community Landing Page */}
+            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/login" element={isCommitteeOrAdmin ? <Navigate to="/dashboard" replace /> : <Login />} />
+
+            {/* Committee / Admin Protected Management Routes */}
+            {isCommitteeOrAdmin ? (
               <>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/members" element={<Members />} />
@@ -65,14 +67,22 @@ const AppContent: React.FC = () => {
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/media-management" element={<Navigate to="/expenses" replace />} />
                 <Route path="/more" element={<AdminSettings />} />
-                {/* Fallback to Dashboard */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+                <Route path="/members" element={<Navigate to="/login" replace />} />
+                <Route path="/finance" element={<Navigate to="/login" replace />} />
+                <Route path="/expenses" element={<Navigate to="/login" replace />} />
+                <Route path="/more" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
           </Routes>
         </ScreenTransitionContainer>
 
-        {/* Sticky bottom navigation bar */}
+        {/* Sticky bottom navigation bar (visible for committee/admin) */}
         <BottomNavigation />
       </PhoneWrapper>
     </Router>
@@ -88,3 +98,4 @@ function App() {
 }
 
 export default App;
+

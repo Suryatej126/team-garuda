@@ -11,7 +11,8 @@ import {
   Users, 
   TrendingUp, 
   ChevronRight,
-  Receipt
+  Receipt,
+  Globe
 } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
@@ -243,19 +244,37 @@ export const Dashboard: React.FC = () => {
           
           {/* Show gold text overlay only if the video fails to load (fallback) to prevent double/overlapping text */}
           {videoError && (
-            <div className="z-10 relative">
-              <h1 className="text-xl sm:text-2xl font-serif font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-light-gold via-antique-gold to-[#fff6c5] drop-shadow-md uppercase animate-pulse">
-                Team Garuda
-              </h1>
-              <div className="flex items-center justify-center gap-1.5 mt-2">
+            <div className="z-10 flex flex-col items-center gap-1.5 pointer-events-none">
+              <span className="text-[9px] font-extrabold tracking-[0.25em] text-light-gold/90 uppercase">
+                SRI GANESHA KRUPA
+              </span>
+              <h2 className="text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#fff6c5] via-light-gold to-[#f5d078] font-serif uppercase">
+                TEAM GARUDA
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
                 <span className="h-[1px] w-8 bg-antique-gold/40"></span>
-                <span className="text-[9px] font-extrabold uppercase tracking-[0.3em] text-antique-gold animate-glow">
-                  Sri Ganesha Krupa
-                </span>
+                <span className="text-[8px] tracking-[0.3em] text-antique-gold font-bold">2026</span>
                 <span className="h-[1px] w-8 bg-antique-gold/40"></span>
               </div>
             </div>
           )}
+        </div>
+
+        {/* Quick View Public Website Banner */}
+        <div 
+          onClick={() => navigate('/')}
+          className="bg-gradient-to-r from-[#FFF4DF] via-[#FFF9EE] to-[#FDE8C7] border-2 border-[#E9D0A7] p-3 rounded-2xl flex items-center justify-between gap-3 shadow-xs cursor-pointer hover:shadow-md active:scale-98 transition-all -mt-2"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <Globe className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col text-left">
+              <h4 className="text-xs font-black text-[#7C2D12]">ప్రజా హోంపేజీని చూడండి (View Public Page)</h4>
+              <span className="text-[9px] font-semibold text-[#92400E]">శ్రీ గణేష్ ఉత్సవ లైవ్ ల్యాండింగ్ పేజీ</span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-[#EA580C] shrink-0" />
         </div>
 
         {/* Quick Actions - horizontal scroll list */}

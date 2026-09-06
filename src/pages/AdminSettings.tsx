@@ -1,7 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BottomSheet } from '../components/BottomSheet';
-import { Settings, LogOut, UserCheck, PlusCircle, Edit2, Trash2 } from 'lucide-react';
+import { 
+  Settings, 
+  LogOut, 
+  UserCheck, 
+  PlusCircle, 
+  Edit2, 
+  Trash2, 
+  Globe, 
+  Sparkles, 
+  Image as ImageIcon, 
+  Upload, 
+  Save, 
+  Plus, 
+  ChevronDown, 
+  ChevronUp,
+  ExternalLink
+} from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
 interface UserRecord {
@@ -20,19 +37,38 @@ interface AuditLog {
   timestamp: string;
 }
 
+interface PoojaDay {
+  day: number;
+  date: string;
+  title: string;
+  description: string;
+  special_event?: string;
+  time?: string;
+}
+
+interface DonorItem {
+  id: number;
+  name: string;
+  title: string;
+  amount?: string;
+  details?: string;
+  year?: string;
+}
+
 export const AdminSettings: React.FC = () => {
   const { user, token, logout } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN';
 
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // Bottom Sheet Form state
+  // Bottom Sheet Form state for Users
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Form fields
+  // User form fields
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -50,6 +86,28 @@ export const AdminSettings: React.FC = () => {
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
+
+  // Festival Landing Page Management states
+  const [festivalTitle, setFestivalTitle] = useState('శ్రీ గణేష్ ఉత్సవం 2026');
+  const [festivalYear, setFestivalYear] = useState(2026);
+  const [tagline, setTagline] = useState('టీమ్ గరుడ');
+  const [subTagline, setSubTagline] = useState('మన వీధి • మన పండుగ • మన గర్వం');
+  const [datesText, setDatesText] = useState('సెప్టెంబర్ 15 – సెప్టెంబర్ 23, 2026');
+  const [locationText, setLocationText] = useState('నాగార్జున స్ట్రీట్, రాజోలు');
+  const [statusText, setStatusText] = useState('వైభవంగా కొనసాగుతోంది');
+  const [idolImageUrl, setIdolImageUrl] = useState('/ganesh_idol_2026.jpg');
+  const [poojas, setPoojas] = useState<PoojaDay[]>([]);
+  const [ladduDonors, setLadduDonors] = useState<DonorItem[]>([]);
+  const [idolDonors, setIdolDonors] = useState<DonorItem[]>([]);
+  
+  const [loadingFest, setLoadingFest] = useState(false);
+  const [savingFest, setSavingFest] = useState(false);
+  const [festSuccess, setFestSuccess] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Collapsible sections
+  const [showPoojasSection, setShowPoojasSection] = useState(false);
+  const [showDonorsSection, setShowDonorsSection] = useState(false);
 
   // Audit Logs State
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -113,7 +171,162 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
+  const fetchFestivalInfo = async () => {
+    setLoadingFest(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/public/festival-info`);
+      if (res.ok) {
+        const data = await res.json();
+        setFestivalTitle(data.festival_title);
+        setFestivalYear(data.festival_year);
+        setTagline(data.tagline);
+        setSubTagline(data.sub_tagline);
+        setDatesText(data.dates_text);
+        setLocationText(data.location_text);
+        setStatusText(data.status_text);
+        setIdolImageUrl(data.idol_image_url || '/ganesh_idol_2026.jpg');
+        try { setPoojas(JSON.parse(data.pooja_schedule)); } catch { /* ignore */ }
+        try { setLadduDonors(JSON.parse(data.laddu_donors)); } catch { /* ignore */ }
+        try { setIdolDonors(JSON.parse(data.idol_donors)); } catch { /* ignore */ }
+      }
+    } catch (err) {
+      console.error('Error fetching festival info:', err);
+    } finally {
+      setLoadingFest(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchReceiptSettings();
+    fetchFestivalInfo();
+    fetchLogs();
+  }, [token, isAdmin]);
+
+  const handleSaveFestivalInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFest(true);
+    setFestSuccess(false);
+
+    try {
+      const payload = {
+        festival_title: festivalTitle.trim(),
+        festival_year: festivalYear,
+        tagline: tagline.trim(),
+        sub_tagline: subTagline.trim(),
+        dates_text: datesText.trim(),
+        location_text: locationText.trim(),
+        status_text: statusText.trim(),
+        idol_image_url: idolImageUrl.trim(),
+        pooja_schedule: JSON.stringify(poojas),
+        laddu_donors: JSON.stringify(ladduDonors),
+        idol_donors: JSON.stringify(idolDonors)
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/admin/festival-info`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setFestSuccess(true);
+        setTimeout(() => setFestSuccess(false), 3000);
+      } else {
+        alert('Failed to save festival information.');
+      }
+    } catch (err) {
+      console.error('Error saving festival info:', err);
+      alert('Network error while saving festival info.');
+    } finally {
+      setSavingFest(false);
+    }
+  };
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingImage(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/upload-idol-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setIdolImageUrl(data.file_url);
+        alert('Idol image uploaded successfully! Click Save to apply changes.');
+      } else {
+        alert('Image upload failed.');
+      }
+    } catch (err) {
+      console.error('Error uploading idol image:', err);
+      alert('Network error while uploading image.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handlePoojaChange = (index: number, field: keyof PoojaDay, value: string) => {
+    const updated = [...poojas];
+    updated[index] = { ...updated[index], [field]: value };
+    setPoojas(updated);
+  };
+
+  const handleAddLadduDonor = () => {
+    const newDonor: DonorItem = {
+      id: Date.now(),
+      name: 'నూతన దాత',
+      title: 'లడ్డు దాత',
+      amount: 'లడ్డూ ప్రసాదం',
+      year: String(festivalYear)
+    };
+    setLadduDonors([...ladduDonors, newDonor]);
+  };
+
+  const handleRemoveLadduDonor = (id: number) => {
+    setLadduDonors(ladduDonors.filter(d => d.id !== id));
+  };
+
+  const handleLadduDonorChange = (index: number, field: keyof DonorItem, value: string) => {
+    const updated = [...ladduDonors];
+    updated[index] = { ...updated[index], [field]: value };
+    setLadduDonors(updated);
+  };
+
+  const handleAddIdolDonor = () => {
+    const newDonor: DonorItem = {
+      id: Date.now(),
+      name: 'నూతన దాత',
+      title: 'విగ్రహ సమర్పణ దాత',
+      details: 'మంటప సహకారం',
+      year: String(festivalYear)
+    };
+    setIdolDonors([...idolDonors, newDonor]);
+  };
+
+  const handleRemoveIdolDonor = (id: number) => {
+    setIdolDonors(idolDonors.filter(d => d.id !== id));
+  };
+
+  const handleIdolDonorChange = (index: number, field: keyof DonorItem, value: string) => {
+    const updated = [...idolDonors];
+    updated[index] = { ...updated[index], [field]: value };
+    setIdolDonors(updated);
+  };
+
+  const handleSaveReceiptSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSettings(true);
     setSettingsSuccess(false);
@@ -147,13 +360,6 @@ export const AdminSettings: React.FC = () => {
       setSavingSettings(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-    fetchReceiptSettings();
-    fetchLogs();
-  }, [token, isAdmin]);
-
 
   const openAddUserSheet = () => {
     setFormError('');
@@ -243,6 +449,7 @@ export const AdminSettings: React.FC = () => {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-primary-bg text-primary-text overflow-y-auto no-scrollbar pb-10">
+      
       {/* Header Bar */}
       <div className="h-16 px-5 shrink-0 flex items-center justify-between border-b border-border-custom bg-white/95 backdrop-blur sticky top-0 z-30">
         <div>
@@ -255,8 +462,25 @@ export const AdminSettings: React.FC = () => {
       </div>
 
       {/* Main Settings Body */}
-      <div className="px-5 pt-5 flex flex-col gap-6">
+      <div className="px-5 pt-4 flex flex-col gap-5">
         
+        {/* Quick View Public Website Banner */}
+        <div 
+          onClick={() => navigate('/')}
+          className="bg-gradient-to-r from-[#FFF4DF] to-[#FDE8C7] border-2 border-[#E9D0A7] p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-sm cursor-pointer hover:shadow-md active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Globe className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <h4 className="text-xs font-black text-[#7C2D12]">ప్రజా వెబ్‌సైట్ చూడండి (Public Landing Page)</h4>
+              <span className="text-[10px] font-semibold text-[#92400E]">మన వీధి గణేష్ ఉత్సవ హోంపేజీని చూడటానికి ఇక్కడ క్లిక్ చేయండి</span>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-[#EA580C] shrink-0" />
+        </div>
+
         {/* Profile Card */}
         <div className="bg-white border border-border-custom p-4 rounded-2xl flex items-center gap-4 shadow-sm">
           <div className="w-12 h-12 rounded-xl bg-primary-maroon/10 border border-primary-maroon/20 flex items-center justify-center text-primary-maroon shrink-0">
@@ -271,7 +495,325 @@ export const AdminSettings: React.FC = () => {
           </span>
         </div>
 
-        {/* Admin Management Section */}
+        {/* ========================================================= */}
+        {/* FESTIVAL LANDING PAGE SETTINGS (Admin & Committee) */}
+        {/* ========================================================= */}
+        <div className="bg-white border border-border-custom rounded-2xl p-4 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-border-custom/60 pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#EA580C]" />
+              <h4 className="text-xs font-black uppercase tracking-wider text-primary-text">
+                గణేష్ ఉత్సవ వివరాలు & విగ్రహ ఫోటో (Landing Page)
+              </h4>
+            </div>
+          </div>
+
+          {loadingFest ? (
+            <div className="py-8 flex justify-center items-center">
+              <div className="w-6 h-6 rounded-full border-2 border-t-[#EA580C] border-[#F2E8D5] animate-spin" />
+            </div>
+          ) : (
+            <form onSubmit={handleSaveFestivalInfo} className="flex flex-col gap-4 text-left">
+              
+              {/* Idol Photo Upload & Preview */}
+              <div className="flex flex-col gap-2 bg-[#FFFDF8] border border-[#F2E8D5] p-3 rounded-2xl">
+                <label className="text-[10px] font-bold text-[#7C2D12] uppercase tracking-wider flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#EA580C]" />
+                  <span>ఈ సంవత్సరం స్వామివారి విగ్రహ ఫోటో (Ganesh Idol Image)</span>
+                </label>
+
+                <div className="flex items-center gap-3">
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#2D1609] border border-[#E9D0A7] shrink-0 shadow-inner">
+                  <img 
+                    src={idolImageUrl || '/ganesh_idol_2026.jpg'} 
+                    alt="Current Idol" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/ganesh_idol_2026.jpg'; }}
+                  />
+                </div>
+
+                <div className="flex-1 flex flex-col gap-2">
+                  <label className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-[#EA580C] bg-[#EA580C]/10 hover:bg-[#EA580C]/20 border border-[#EA580C]/30 px-3 py-2 rounded-xl cursor-pointer transition-all active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingImage ? 'అప్‌లోడ్ అవుతోంది...' : 'కొత్త ఫోటో అప్‌లోడ్ చేయండి'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageFileUpload}
+                      disabled={uploadingImage}
+                      className="hidden" 
+                    />
+                  </label>
+                  
+                  <input 
+                    type="text" 
+                    value={idolImageUrl}
+                    onChange={e => setIdolImageUrl(e.target.value)}
+                    placeholder="లేదా ఫోటో URL ఎంటర్ చేయండి"
+                    className="w-full bg-secondary-bg border border-border-custom rounded-xl px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-[#EA580C]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Basic Festival Info Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Festival Title</label>
+                <input 
+                  type="text"
+                  value={festivalTitle}
+                  onChange={e => setFestivalTitle(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Festival Year</label>
+                <input 
+                  type="number"
+                  value={festivalYear}
+                  onChange={e => setFestivalYear(Number(e.target.value))}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon font-mono"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Tagline</label>
+                <input 
+                  type="text"
+                  value={tagline}
+                  onChange={e => setTagline(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Status Badge</label>
+                <input 
+                  type="text"
+                  value={statusText}
+                  onChange={e => setStatusText(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+
+              <div className="col-span-2 flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Sub-Tagline</label>
+                <input 
+                  type="text"
+                  value={subTagline}
+                  onChange={e => setSubTagline(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Festival Dates</label>
+                <input 
+                  type="text"
+                  value={datesText}
+                  onChange={e => setDatesText(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-secondary-text uppercase">Location</label>
+                <input 
+                  type="text"
+                  value={locationText}
+                  onChange={e => setLocationText(e.target.value)}
+                  className="bg-secondary-bg border border-border-custom rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary-maroon"
+                />
+              </div>
+            </div>
+
+            {/* 9 Days Pooja Schedule Collapsible Editor */}
+            <div className="border border-border-custom rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => setShowPoojasSection(!showPoojasSection)}
+                className="p-3 bg-[#FAF3E2] flex items-center justify-between cursor-pointer"
+              >
+                <span className="text-xs font-black text-[#7C2D12]">
+                  🪔 9 రోజుల పూజా కార్యక్రమాలు ({poojas.length} Days)
+                </span>
+                {showPoojasSection ? <ChevronUp className="w-4 h-4 text-[#7C2D12]" /> : <ChevronDown className="w-4 h-4 text-[#7C2D12]" />}
+              </div>
+
+              {showPoojasSection && (
+                <div className="p-3 flex flex-col gap-3 max-h-72 overflow-y-auto no-scrollbar">
+                  {poojas.map((p, idx) => (
+                    <div key={p.day} className="bg-[#FFFDF8] border border-[#F0DFC6] p-2.5 rounded-xl flex flex-col gap-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-[#EA580C]">Day {p.day}</span>
+                        <input 
+                          type="text"
+                          value={p.date}
+                          onChange={e => handlePoojaChange(idx, 'date', e.target.value)}
+                          placeholder="Date"
+                          className="bg-secondary-bg border border-border-custom rounded-lg px-2 py-0.5 text-[10px] w-28"
+                        />
+                      </div>
+                      <input 
+                        type="text"
+                        value={p.title}
+                        onChange={e => handlePoojaChange(idx, 'title', e.target.value)}
+                        placeholder="Pooja Title"
+                        className="bg-secondary-bg border border-border-custom rounded-lg px-2 py-1 text-xs font-bold"
+                      />
+                      <textarea 
+                        value={p.description}
+                        onChange={e => handlePoojaChange(idx, 'description', e.target.value)}
+                        placeholder="Description & Rituals"
+                        rows={2}
+                        className="bg-secondary-bg border border-border-custom rounded-lg px-2 py-1 text-[11px]"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="text"
+                          value={p.special_event || ''}
+                          onChange={e => handlePoojaChange(idx, 'special_event', e.target.value)}
+                          placeholder="Special Event (Optional)"
+                          className="bg-secondary-bg border border-border-custom rounded-lg px-2 py-1 text-[10px]"
+                        />
+                        <input 
+                          type="text"
+                          value={p.time || ''}
+                          onChange={e => handlePoojaChange(idx, 'time', e.target.value)}
+                          placeholder="Time (e.g. 7:00 PM)"
+                          className="bg-secondary-bg border border-border-custom rounded-lg px-2 py-1 text-[10px]"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Laddu & Idol Donors Manager */}
+            <div className="border border-border-custom rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => setShowDonorsSection(!showDonorsSection)}
+                className="p-3 bg-[#FAF3E2] flex items-center justify-between cursor-pointer"
+              >
+                <span className="text-xs font-black text-[#7C2D12]">
+                  🥥 లడ్డు & విగ్రహ దాతల నిర్వహణ
+                </span>
+                {showDonorsSection ? <ChevronUp className="w-4 h-4 text-[#7C2D12]" /> : <ChevronDown className="w-4 h-4 text-[#7C2D12]" />}
+              </div>
+
+              {showDonorsSection && (
+                <div className="p-3 flex flex-col gap-4">
+                  
+                  {/* Laddu Donors */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#EA580C]">లడ్డు దాతలు ({ladduDonors.length})</span>
+                      <button 
+                        type="button"
+                        onClick={handleAddLadduDonor}
+                        className="text-[10px] font-bold text-[#EA580C] flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>దాతను జోడించండి</span>
+                      </button>
+                    </div>
+
+                    {ladduDonors.map((d, idx) => (
+                      <div key={d.id} className="bg-secondary-bg p-2.5 rounded-xl border border-border-custom flex items-center gap-2">
+                        <input 
+                          type="text"
+                          value={d.name}
+                          onChange={e => handleLadduDonorChange(idx, 'name', e.target.value)}
+                          placeholder="దాత పేరు"
+                          className="flex-1 bg-white border border-border-custom rounded-lg px-2 py-1 text-xs font-semibold"
+                        />
+                        <input 
+                          type="text"
+                          value={d.amount || ''}
+                          onChange={e => handleLadduDonorChange(idx, 'amount', e.target.value)}
+                          placeholder="వివరాలు/నైవేద్యం"
+                          className="w-32 bg-white border border-border-custom rounded-lg px-2 py-1 text-[10px]"
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveLadduDonor(d.id)}
+                          className="p-1 text-error hover:bg-error/10 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Idol Donors */}
+                  <div className="flex flex-col gap-2 border-t border-border-custom pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#7C2D12]">వినాయక విగ్రహ దాతలు ({idolDonors.length})</span>
+                      <button 
+                        type="button"
+                        onClick={handleAddIdolDonor}
+                        className="text-[10px] font-bold text-[#7C2D12] flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>దాతను జోడించండి</span>
+                      </button>
+                    </div>
+
+                    {idolDonors.map((d, idx) => (
+                      <div key={d.id} className="bg-secondary-bg p-2.5 rounded-xl border border-border-custom flex items-center gap-2">
+                        <input 
+                          type="text"
+                          value={d.name}
+                          onChange={e => handleIdolDonorChange(idx, 'name', e.target.value)}
+                          placeholder="దాత పేరు"
+                          className="flex-1 bg-white border border-border-custom rounded-lg px-2 py-1 text-xs font-semibold"
+                        />
+                        <input 
+                          type="text"
+                          value={d.details || ''}
+                          onChange={e => handleIdolDonorChange(idx, 'details', e.target.value)}
+                          placeholder="వివరాలు"
+                          className="w-32 bg-white border border-border-custom rounded-lg px-2 py-1 text-[10px]"
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveIdolDonor(d.id)}
+                          className="p-1 text-error hover:bg-error/10 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+            {/* Save Button */}
+            <button
+              type="submit"
+              disabled={savingFest}
+              className="w-full bg-[#EA580C] hover:bg-[#C2410C] text-white font-extrabold text-xs py-3 rounded-xl active:scale-95 transition-all shadow-md flex justify-center items-center gap-1.5 cursor-pointer"
+            >
+              {savingFest ? (
+                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : festSuccess ? (
+                <span className="text-white font-black flex items-center gap-1">✓ వివరాలు విజయవంతంగా సేవ్ అయ్యాయి</span>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>ఉత్సవ సమాచారాన్ని సేవ్ చేయండి (Save Landing Page)</span>
+                </>
+              )}
+            </button>
+          </form>
+          )}
+        </div>
+
+        {/* Users & Committee Management Section */}
         {isAdmin && (
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
@@ -343,7 +885,7 @@ export const AdminSettings: React.FC = () => {
                 <div className="w-5 h-5 rounded-full border-2 border-t-primary-maroon border-border-custom animate-spin" />
               </div>
             ) : (
-              <form onSubmit={handleSaveSettings} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3.5 shadow-sm text-left">
+              <form onSubmit={handleSaveReceiptSettings} className="bg-white border border-border-custom p-4 rounded-2xl flex flex-col gap-3.5 shadow-sm text-left">
                 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Receipt Main Header (Telugu)</label>
@@ -495,7 +1037,6 @@ export const AdminSettings: React.FC = () => {
         <div className="flex flex-col gap-2.5">
           <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-secondary-text">Account Settings</h4>
 
-          
           <div className="bg-white border border-border-custom rounded-2xl overflow-hidden shadow-sm">
             <button 
               onClick={logout}
@@ -520,10 +1061,11 @@ export const AdminSettings: React.FC = () => {
             <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Username</label>
             <input 
               type="text" 
-              placeholder="e.g. naveen" 
+              required
+              placeholder="e.g. 9398255539 or member name"
               value={newUsername}
               onChange={e => setNewUsername(e.target.value)}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
             />
           </div>
 
@@ -531,70 +1073,54 @@ export const AdminSettings: React.FC = () => {
             <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Email Address</label>
             <input 
               type="email" 
-              placeholder="e.g. naveen@teamgaruda.in" 
+              required
+              placeholder="e.g. member@teamgaruda.in"
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold placeholder:text-secondary-text/50"
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold font-mono"
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">
-              {editingUser ? "New Password (Optional)" : "Initial Password"}
+              {editingUser ? "New Password (Leave empty to keep existing)" : "Password"}
             </label>
             <input 
               type="password" 
-              placeholder={editingUser ? "Leave empty to keep current password" : "••••••••"} 
+              placeholder="••••••••"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              className="w-full bg-white border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text placeholder:text-secondary-text/50"
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Authority Role</label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setNewRole('COMMITTEE')}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  newRole === 'COMMITTEE' 
-                    ? 'bg-primary-maroon text-white border-primary-maroon shadow-sm' 
-                    : 'bg-white border-border-custom text-secondary-text hover:bg-secondary-bg/50'
-                }`}
-              >
-                Committee
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setNewRole('ADMIN')}
-                className={`flex-1 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  newRole === 'ADMIN' 
-                    ? 'bg-dark-maroon text-white border-dark-maroon shadow-sm' 
-                    : 'bg-white border-border-custom text-secondary-text hover:bg-secondary-bg/50'
-                }`}
-              >
-                Administrator
-              </button>
-            </div>
+            <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">Role Assignment</label>
+            <select
+              value={newRole}
+              onChange={e => setNewRole(e.target.value)}
+              className="w-full bg-secondary-bg border border-border-custom rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-maroon text-primary-text font-semibold"
+            >
+              <option value="COMMITTEE">COMMITTEE (Standard Member)</option>
+              <option value="ADMIN">ADMIN (Full Privileges)</option>
+            </select>
           </div>
 
           {formError && (
-            <div className="bg-error/10 border border-error/20 text-error text-[10px] px-3.5 py-3 rounded-xl">
+            <div className="bg-error/10 border border-error/20 text-error text-[10px] p-3 rounded-xl font-semibold">
               {formError}
             </div>
           )}
 
-          <button 
+          <button
             type="submit"
             disabled={saving}
-            className="w-full bg-primary-maroon text-white font-extrabold text-xs py-3.5 rounded-xl mt-4 active:scale-[0.98] transition-all hover:bg-dark-maroon flex justify-center items-center shadow-lg shadow-primary-maroon/10 cursor-pointer"
+            className="w-full bg-primary-maroon hover:bg-dark-maroon text-white font-extrabold text-xs py-3.5 rounded-xl mt-2 active:scale-95 transition-all shadow-md flex justify-center items-center cursor-pointer"
           >
             {saving ? (
-              <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
             ) : (
-              <span>{editingUser ? "Save Changes" : "Create User"}</span>
+              <span>{editingUser ? "Update User" : "Create User"}</span>
             )}
           </button>
         </form>
